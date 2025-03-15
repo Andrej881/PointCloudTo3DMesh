@@ -19,7 +19,7 @@ private:
 public:
 	E57* e;
 	myGuiImplementation(GLFWwindow* window,E57* e57);
-	int Render();
+	int Render(float* rotations);
 	int OpenFileDialog();
 	~myGuiImplementation();
 };

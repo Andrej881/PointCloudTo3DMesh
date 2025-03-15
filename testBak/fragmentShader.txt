@@ -1,5 +1,26 @@
 #version 330 core
 out vec4 FragColor;
-void main() {
-    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+
+in vec3 FragPos;  // fragment position
+in vec3 Normal;    // normal vector
+
+uniform vec3 lightPos;    // position of light source
+uniform vec3 lightColor;  // color of the light
+uniform vec3 objectColor; // color of the object
+
+void main()
+{
+    // Normalize the vectors
+    vec3 norm = normalize(Normal);
+    vec3 lightDir = normalize(lightPos - FragPos);  // direction from frag to light
+
+    // Calculate diffuse lighting
+    float diff = max(dot(norm, lightDir), 0.0); // Lambertian diffuse model
+    vec3 diffuse = diff * lightColor;
+
+    // Simple Phong reflection model (ambient + diffuse)
+    vec3 ambient = 0.2 * lightColor;  // ambient light intensity
+    vec3 result = (ambient + diffuse) * objectColor;
+
+    FragColor = vec4(result, 1.0);  // final color
 }

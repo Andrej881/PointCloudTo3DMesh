@@ -54,6 +54,9 @@
     <ClCompile Include="nfd_win.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
+    <ClCompile Include="MarginCubes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="D:\Bakalarka\e57Files\bunnyFloat.e57">
@@ -94,6 +97,9 @@
     </ClInclude>
     <ClInclude Include="nfd_common.h">
       <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="MarginCubes.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

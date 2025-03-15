@@ -42,14 +42,24 @@ int E57::ReadFile(e57::ustring & path)
         int pointCount = data3DHeader.pointCount;
         std::cout << "Point count: " << pointCount << std::endl;
 
+        bool hasNormals = data3DHeader.pointFields.normalXField && data3DHeader.pointFields.normalYField && data3DHeader.pointFields.normalZField;
+
         // Allocate memory for points
         points = std::vector<float>(); // X, Y, Z interleaved
         std::vector<float> XP(pointCount), YP(pointCount), ZP(pointCount);
+        std::vector<float> NorX, NorY, NorZ;
         // Prepare buffers for the reader
         e57::Data3DPointsFloat buffer;
         buffer.cartesianX = XP.data();
         buffer.cartesianY = YP.data();
         buffer.cartesianZ = ZP.data();
+
+        if (hasNormals)
+        {
+            buffer.normalX = NorX.data();
+            buffer.normalY = NorY.data();
+            buffer.normalZ = NorZ.data();        
+        }
 
         // Read points from the first cloud
         e57::CompressedVectorReader vectorReader = reader.SetUpData3DPointsData(0, static_cast<int64_t>(data3DHeader.pointCount), buffer);
@@ -58,11 +68,20 @@ int E57::ReadFile(e57::ustring & path)
         count = vectorReader.read();
         vectorReader.close();
 
+
         for (int i = 0; i < count; i++) {
             points.push_back(XP[i]);
             points.push_back(YP[i]);
             points.push_back(ZP[i]);
+            if (hasNormals)
+            {
+                normals.push_back(NorX[i]);
+                normals.push_back(NorY[i]);
+                normals.push_back(NorZ[i]);
+            }
         }
+
+
 
         std::cout << "Successfully read " << count << " points!" << std::endl;
         //NORMILIZE
@@ -88,6 +107,7 @@ int E57::ReadFile(e57::ustring & path)
             points[i * 3 + 1] = (points[i * 3 + 1] - centerY) / maxDim;
             points[i * 3 + 2] = (points[i * 3 + 2] - centerZ) / maxDim;
         }
+
     }
     catch (const e57::E57Exception& e) {
         std::cerr << "E57 error: " << e.what() << std::endl;
@@ -99,7 +119,7 @@ int E57::ReadFile(e57::ustring & path)
     return 0;
 }
 
-std::vector<float> E57::getPoints()
+std::vector<float>& E57::getPoints()
 {
     return this->points;
 }

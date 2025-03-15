@@ -11,6 +11,7 @@
 #include "Shader.h"
 #include "Camera.h"
 
+#include "MarginCubes.h"
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -23,21 +24,24 @@ private:
 	GLuint VAO, VBO;
 	int pointCount; //tmp
 	int width, height;
-	bool isCursorDisabled, isCPressed;
+	bool cursorDisabled, cPressed;
+	float rotations[3];
+	MarginCubes* cubes;
+	bool renderMesh;
+
 public:
-	bool dragging = false;
-	double lastX, lastY;
-	float modelRotationX = 0.0f; // Rotation around X-axis
-	float modelRotationY = 0.0f; // Rotation around Y-axis
-	glm::mat4 model = glm::mat4(1.0f);
+
+	bool isCursorDisabled();
 
 	void setPointCount(int count);
 	void ProcessInput(float deltaTime, Camera& camera);
 	Window(unsigned int width, unsigned int height);
-	void setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll, GLFWmousebuttonfun button);
+	void setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll);
 	void Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui);
 	GLFWwindow* getWindow();
 	void LoadPointCloudToGPU(const std::vector<float>& points);
+	void LoadMeshToGPUFromCubes(MarginCubes& cubes);
+
 	~Window();
 };
 

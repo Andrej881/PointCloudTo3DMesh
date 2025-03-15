@@ -18,6 +18,16 @@ public:
 	{
 		glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &value[0][0]);
 	}
+	void setVec3(const std::string& name, const glm::vec3& value)
+	{
+		GLint location = glGetUniformLocation(ID, name.c_str());
+		if (location == -1)
+		{
+			std::cerr << "Warning: uniform " << name << " not found!" << std::endl;
+			return;
+		}
+		glUniform3fv(location, 1, &value[0]);
+	}
 	void use();
 };
 

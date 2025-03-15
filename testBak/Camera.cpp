@@ -17,11 +17,6 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
         Position -= Right * velocity;
     if (direction == RIGHT)
         Position += Right * velocity;
-    if (direction == ROTATE_LEFT) // Q key (Counterclockwise)
-        Roll -= rotationSpeed;
-    if (direction == ROTATE_RIGHT) // E key (Clockwise)
-        Roll += rotationSpeed;
-
     updateCameraVectors();
 }
 

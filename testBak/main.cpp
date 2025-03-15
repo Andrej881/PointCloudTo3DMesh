@@ -3,10 +3,11 @@
 #include "Shader.h"
 #include "Camera.h"
 
+#include "MarginCubes.h"
+
 e57::ustring path = "D:\\Bakalarka\\e57Files\\bunnyFloat.e57";
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f;
@@ -17,8 +18,31 @@ bool firstMouse = true;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 Window win(1080, 720);
 int main() {
+
     E57 e57(path);
     myGuiImplementation gui(win.getWindow(), &e57);
+    
+    std::vector<float> points = std::vector<float>();
+
+    /*for (float i = -0.5; i <= 0.5; i = i + 0.1)
+    {
+        for (float j = -0.5; j <= 0.5; j = j + 0.1)
+        {
+            for (float k = -0.5; k <= 0.5; k = k + 0.1)
+            {
+                points.push_back(i);
+                points.push_back(j);
+                points.push_back(k);
+            }
+        }
+    }
+    points.push_back(-0.5); points.push_back(-0.5); points.push_back(-0.5);
+
+    MarginCubes cubes(1, 0, points);
+    win.setPointCount(points.size() / 3);*/
+
+    MarginCubes cubes(0.01,1,e57.getPoints());
+    printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
 
     if (e57.getCount() <= 0)
     {
@@ -26,8 +50,9 @@ int main() {
     }
 
     win.setPointCount(e57.getCount());
-    win.LoadPointCloudToGPU(e57.getPoints());
-    win.setCallBacks(mouse_callback, scroll_callback, mouse_button_callback);
+    //win.LoadPointCloudToGPU(e57.getPoints());
+    win.LoadMeshToGPUFromCubes(cubes);
+    win.setCallBacks(mouse_callback, scroll_callback);
     Shader shader;
     GLuint shaderProgram = shader.createShaderProgram();
     while (!glfwWindowShouldClose(win.getWindow()))
@@ -46,47 +71,27 @@ int main() {
 }
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    if (win.dragging)
-    {
+{    
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (!win.isCursorDisabled())
         firstMouse = true;
-        float xoffset = xposIn - win.lastX;
-        float yoffset = yposIn - win.lastY;
-        win.lastX = xposIn;
-        win.lastY = yposIn;
 
-        // Adjust rotation based on movement
-        //win.modelRotationX += yoffset * 0.1f;  // Sensitivity factor
-        //win.modelRotationY += xoffset * 0.1f;
-
-        glm::mat4 rotX = glm::rotate(glm::mat4(1.0f), glm::radians(yoffset * 0.1f), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around screen X
-        glm::mat4 rotY = glm::rotate(glm::mat4(1.0f), glm::radians(xoffset * 0.1f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around screen Y
-
-        //Apply rotation relative to current model transformation
-        win.model = rotY * rotX * win.model;
-
-    }
-    else
+    if (firstMouse)
     {
-
-        float xpos = static_cast<float>(xposIn);
-        float ypos = static_cast<float>(yposIn);
-
-        if (firstMouse)
-        {
-            lastX = xpos;
-            lastY = ypos;
-            firstMouse = false;
-        }
-
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos;
-
         lastX = xpos;
         lastY = ypos;
-
-        camera.ProcessMouseMovement(xoffset, yoffset, false);
+        firstMouse = false;
     }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset, false);
     ImGui_ImplGlfw_CursorPosCallback(window, xposIn, yposIn);
 }
 
@@ -94,24 +99,5 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
     ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
-
-}
-
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
-    if (button == GLFW_MOUSE_BUTTON_LEFT)
-    {
-        if (action == GLFW_PRESS)
-        {
-            win.dragging = true;
-            glfwGetCursorPos(window, &win.lastX, &win.lastY);
-        }
-        else if (action == GLFW_RELEASE)
-        {
-            win.dragging = false;
-        }
-    }
-    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
 
 }

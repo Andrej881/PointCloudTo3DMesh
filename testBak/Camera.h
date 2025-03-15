@@ -6,14 +6,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-// Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
+
 enum Camera_Movement {
     FORWARD,
     BACKWARD,
     LEFT,
     RIGHT,
-    ROTATE_LEFT,
-    ROTATE_RIGHT
 };
 
 // Default camera values
@@ -30,7 +28,6 @@ class Camera
 public:
     // camera Attributes
     glm::vec3 Position;
-    float Roll;
     glm::vec3 Front;
     glm::vec3 Up;
     glm::vec3 Right;
