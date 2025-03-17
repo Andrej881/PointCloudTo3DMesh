@@ -1,5 +1,6 @@
 #pragma once
 
+#include "E57.h"
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -39,15 +40,17 @@ private:
 	float voxelSize;
 	int margin;
 
-	int voxelsInDim;
+	int voxelsInDimX, voxelsInDimY, voxelsInDimZ;
 	std::vector<std::vector<std::vector<bool>>> grid;
 	std::vector<Cube> cubes;
 
 	void GenerateMesh();
 	void CreateCube(int x, int y, int z);	
 public:
+	void InitGrid(std::vector<float>& points, E57* e57);
+	MarginCubes(float voxelSize, int margin, E57& e57);
 	MarginCubes(float voxelSize, int margin, std::vector<float>& points);
-	void SetGrid(std::vector<float>& points);
+	void SetGrid(std::vector<float>& points, E57* e57);
 	std::vector<Cube>& getCubes();
 	~MarginCubes();
 	int numOfTriangels = 0;

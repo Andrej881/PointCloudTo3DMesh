@@ -1,20 +1,43 @@
 #include "MarginCubes.h"
 
+void MarginCubes::InitGrid(std::vector<float>& points, E57* e57)
+{
+	this->cubes.clear();
+	this->grid.clear();
+	if (e57)
+	{
+		NormilizedPointsInfo& info = e57->getInfo();
+		this->voxelsInDimX = ceil((info.maxX - info.minX) / voxelSize) + 1;
+		this->voxelsInDimY = ceil((info.maxY - info.minY) / voxelSize) + 1;
+		this->voxelsInDimZ = ceil((info.maxZ - info.minZ) / voxelSize) + 1;
+	}
+	else
+	{
+		this->voxelsInDimX = this->voxelsInDimY = this->voxelsInDimZ = ceil(1.0f / voxelSize) + 1;
+	}
+	this->grid = std::vector<std::vector<std::vector<bool>>>(this->voxelsInDimX, std::vector<std::vector<bool>>(this->voxelsInDimY, std::vector<bool>(this->voxelsInDimZ, false)));
+}
+
+MarginCubes::MarginCubes(float voxelSize, int margin, E57& e57)
+{
+	this->margin = margin;
+	this->voxelSize = voxelSize;
+
+	InitGrid(e57.getPoints(), &e57);
+	SetGrid(e57.getPoints(), &e57);
+}
+
 MarginCubes::MarginCubes(float voxelSize, int margin,  std::vector<float>& points)
 {
 	this->margin = margin;
 	this->voxelSize = voxelSize;
 
-	this->voxelsInDim = ceil(1.0f / voxelSize) + 1;
-
-	SetGrid(points);
+	InitGrid(points, nullptr);
+	SetGrid(points, nullptr);
 }
 
-void MarginCubes::SetGrid(std::vector<float>& points)
+void MarginCubes::SetGrid(std::vector<float>& points, E57* e57)
 {
-	this->cubes.clear();
-	this->grid.clear();
-	this->grid = std::vector<std::vector<std::vector<bool>>>(this->voxelsInDim, std::vector<std::vector<bool>>(this->voxelsInDim, std::vector<bool>(this->voxelsInDim, false)));
 	//this->grid[0][0][0] = true;
 	//this->grid[this->voxelsInDim-1][this->voxelsInDim-1][this->voxelsInDim-1] = true;
 	// -0.5, 0.5
@@ -22,10 +45,20 @@ void MarginCubes::SetGrid(std::vector<float>& points)
 		//printf("[%d] / [%d]\n", i, points.size());
 		float x = points[i], y = points[i+1], z = points[i+2];
 
-		float min = -0.5;
-		int indexX = (x - min) / voxelSize, indexY = (y - min) / voxelSize, indexZ = (z - min) / voxelSize;
+		float minX, minY, minZ;
+		if (e57)
+		{
+			minX = e57->getInfo().minX;
+			minY = e57->getInfo().minY;
+			minZ = e57->getInfo().minZ;
+		}
+		else
+		{
+			minX = minY = minZ = -0.5;
+		}
+		int indexX = (x - minX) / voxelSize, indexY = (y - minY) / voxelSize, indexZ = (z - minZ) / voxelSize;
 
-		if (indexX < 0 || indexY < 0 || indexZ < 0 || indexX >= this->voxelsInDim || indexY >= this->voxelsInDim || indexZ >= this->voxelsInDim)
+		if (indexX < 0 || indexY < 0 || indexZ < 0 || indexX >= this->voxelsInDimX || indexY >= this->voxelsInDimY || indexZ >= this->voxelsInDimZ)
 		{
 			//printf("X:%d Y:%d Z:%d voxels in dim:%d \n", indexX, indexY, indexZ, this->voxelsInDim);
 			continue;
@@ -42,7 +75,7 @@ void MarginCubes::SetGrid(std::vector<float>& points)
 					if ((j1 == 0 && j2 == 0 && j3 == 0) || (abs(j1) + abs(j2) + abs(j3) != margin))
 						continue;
 					int newIndexX = indexX + j1, newIndexY = indexY + j2, newIndexZ = indexZ + j3;
-					if (newIndexX < 0 || newIndexY < 0 || newIndexZ < 0 || newIndexX >= this->voxelsInDim || newIndexY >= this->voxelsInDim || newIndexZ >= this->voxelsInDim)
+					if (newIndexX < 0 || newIndexY < 0 || newIndexZ < 0 || newIndexX >= this->voxelsInDimX || newIndexY >= this->voxelsInDimY || newIndexZ >= this->voxelsInDimZ)
 					{
 						//printf("X:%d Y:%d Z:%d voxels in dim:%d \n", newIndexX, newIndexY, newIndexZ, this->voxelsInDim);
 						continue;
@@ -58,11 +91,11 @@ void MarginCubes::SetGrid(std::vector<float>& points)
 void MarginCubes::GenerateMesh()
 {	
 	float min = -0.5;
-	for (int i1 = 0; i1 < this->voxelsInDim; i1++)
+	for (int i1 = 0; i1 < this->voxelsInDimX; i1++)
 	{
-		for (int i2 = 0; i2 < this->voxelsInDim; i2++)
+		for (int i2 = 0; i2 < this->voxelsInDimY; i2++)
 		{
-			for (int i3 = 0; i3 < this->voxelsInDim; i3++)
+			for (int i3 = 0; i3 < this->voxelsInDimZ; i3++)
 			{
 				if (this->grid[i1][i2][i3]) 
 				{
@@ -113,7 +146,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 	}
 
 	//rightSide (x+)
-	if (x >= this->voxelsInDim - 1 || (x < this->voxelsInDim - 1 && !this->grid[x + 1][y][z]))
+	if (x >= this->voxelsInDimX - 1 || (x < this->voxelsInDimX - 1 && !this->grid[x + 1][y][z]))
 	{
 		cube.sides[2].active = true;
 		cube.sides[2].triangles[0] = { cube.verteces[1] , cube.verteces[6] , cube.verteces[4] };
@@ -126,7 +159,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 	}
 
 	//back (z+)
-	if (z >= this->voxelsInDim - 1 || (z < this->voxelsInDim - 1 && !this->grid[x][y][z + 1]))
+	if (z >= this->voxelsInDimZ - 1 || (z < this->voxelsInDimZ - 1 && !this->grid[x][y][z + 1]))
 	{
 		cube.sides[3].active = true;
 		cube.sides[3].triangles[0] = { cube.verteces[3] , cube.verteces[7] , cube.verteces[6] };
@@ -139,7 +172,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 	}
 
 	//up (y+)
-	if (y >= this->voxelsInDim - 1 || (y < this->voxelsInDim - 1 && !this->grid[x][y + 1][z]))
+	if (y >= this->voxelsInDimY - 1 || (y < this->voxelsInDimY - 1 && !this->grid[x][y + 1][z]))
 	{
 		cube.sides[4].active = true;
 		cube.sides[4].triangles[0] = { cube.verteces[2] , cube.verteces[4] , cube.verteces[5] };
@@ -164,32 +197,6 @@ void MarginCubes::CreateCube(int x, int y, int z)
 		this->numOfTriangels += 2;
 	}
 
-	/*
-	//tmp
-	//front
-	cube.triangles[0] = { cube.verteces[0] , cube.verteces[1] , cube.verteces[2] }; //012
-	cube.triangles[1] = { cube.verteces[1] , cube.verteces[2] , cube.verteces[4] }; //124
-
-	//down
-	cube.triangles[2] = { cube.verteces[0] , cube.verteces[1] , cube.verteces[3] }; //013
-	cube.triangles[3] = { cube.verteces[1] , cube.verteces[3] , cube.verteces[6] }; //136
-
-	//leftSide
-	cube.triangles[4] = { cube.verteces[0] , cube.verteces[2] , cube.verteces[3] }; //023
-	cube.triangles[6] = { cube.verteces[2] , cube.verteces[3] , cube.verteces[5] }; //235
-
-	//rightSide
-	cube.triangles[6] = { cube.verteces[1] , cube.verteces[4] , cube.verteces[6] }; //146
-	cube.triangles[7] = { cube.verteces[4] , cube.verteces[6] , cube.verteces[7] }; //467
-
-	//back
-	cube.triangles[8] = { cube.verteces[3] , cube.verteces[6] , cube.verteces[7] }; //367
-	cube.triangles[9] = { cube.verteces[3] , cube.verteces[5] , cube.verteces[7] }; //357
-
-	//up
-	cube.triangles[10] = { cube.verteces[2] , cube.verteces[4] , cube.verteces[5] }; //245
-	cube.triangles[11] = { cube.verteces[4] , cube.verteces[5] , cube.verteces[7] }; //457
-	*/
 	this->cubes.push_back(cube);
 }
 

@@ -42,7 +42,7 @@ int E57::ReadFile(e57::ustring & path)
         int pointCount = data3DHeader.pointCount;
         std::cout << "Point count: " << pointCount << std::endl;
 
-        bool hasNormals = data3DHeader.pointFields.normalXField && data3DHeader.pointFields.normalYField && data3DHeader.pointFields.normalZField;
+        hasNormals = data3DHeader.pointFields.normalXField && data3DHeader.pointFields.normalYField && data3DHeader.pointFields.normalZField;
 
         // Allocate memory for points
         points = std::vector<float>(); // X, Y, Z interleaved
@@ -101,7 +101,15 @@ int E57::ReadFile(e57::ustring & path)
         float centerY = (minY + maxY) / 2.0f;
         float centerZ = (minZ + maxZ) / 2.0f;
         float maxDim = std::max({ maxX - minX, maxY - minY, maxZ - minZ });
-
+        
+        info.minX = (minX - centerX) / maxDim;
+        info.maxX = (maxX - centerX) / maxDim;
+        info.minY = (minY - centerY) / maxDim;
+        info.maxY = (maxY - centerY) / maxDim;
+        info.minZ = (minZ - centerZ) / maxDim;
+        info.maxZ = (maxZ - centerZ) / maxDim;
+        
+        printf("minX[%f], maxX[%f], minY[%f], maxY[%f], minZ[%f], maxZ[%f]\n", info.minX, info.maxX, info.minY, info.maxY, info.minZ, info.maxZ);
         for (int i = 0; i < count; i++) {
             points[i * 3] = (points[i * 3] - centerX) / maxDim;
             points[i * 3 + 1] = (points[i * 3 + 1] - centerY) / maxDim;
@@ -127,6 +135,11 @@ std::vector<float>& E57::getPoints()
 int E57::getCount()
 {
     return this->count;
+}
+
+NormilizedPointsInfo& E57::getInfo()
+{
+    return this->info;
 }
 
 E57::~E57()

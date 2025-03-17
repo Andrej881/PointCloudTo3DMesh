@@ -28,6 +28,12 @@
     <Filter Include="Header Files\util">
       <UniqueIdentifier>{ff6242a3-4290-40da-bdb1-98d762da1226}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\meshAlgorithms">
+      <UniqueIdentifier>{89608b89-b114-4cb9-9125-d874356b5e9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\meshAlgorithms">
+      <UniqueIdentifier>{ff388750-3154-42c5-b6a5-f6adce9af2e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -55,7 +61,7 @@
       <Filter>Source Files\util</Filter>
     </ClCompile>
     <ClCompile Include="MarginCubes.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\meshAlgorithms</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -99,7 +105,7 @@
       <Filter>Header Files\util</Filter>
     </ClInclude>
     <ClInclude Include="MarginCubes.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\meshAlgorithms</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

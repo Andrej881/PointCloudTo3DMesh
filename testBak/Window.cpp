@@ -238,7 +238,8 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui)
     auto result = gui.Render(rotations);
     if (result == 0)
     {
-        this->cubes->SetGrid(gui.e->getPoints());
+        this->cubes->InitGrid(gui.e->getPoints(), gui.e);
+        this->cubes->SetGrid(gui.e->getPoints(), gui.e);
         if (this->renderMesh)
         {
             this->LoadMeshToGPUFromCubes(*this->cubes);

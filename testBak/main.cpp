@@ -5,7 +5,7 @@
 
 #include "MarginCubes.h"
 
-e57::ustring path = "D:\\Bakalarka\\e57Files\\bunnyFloat.e57";
+e57::ustring path = "D:\\Bakalarka\\e57Files\\Station018.e57";
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
@@ -41,7 +41,7 @@ int main() {
     MarginCubes cubes(1, 0, points);
     win.setPointCount(points.size() / 3);*/
 
-    MarginCubes cubes(0.01,1,e57.getPoints());
+    MarginCubes cubes(0.00025,1,e57);
     printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
 
     if (e57.getCount() <= 0)
