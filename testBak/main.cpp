@@ -22,7 +22,7 @@ int main() {
     E57 e57(path);
     myGuiImplementation gui(win.getWindow(), &e57);
 
-    MarchingCubes cubes(0.001,5,e57);
+    MarchingCubes cubes(0.005,3,e57);
     //printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
     if (e57.getCount() <= 0)
     {

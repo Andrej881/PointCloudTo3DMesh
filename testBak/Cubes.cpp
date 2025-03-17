@@ -41,6 +41,7 @@ void Cubes::SetGrid(std::vector<float>& points, E57* e57)
 	//this->grid[0][0][0] = true;
 	//this->grid[this->voxelsInDim-1][this->voxelsInDim-1][this->voxelsInDim-1] = true;
 	// -0.5, 0.5
+
 	for (int i = 0; i < points.size(); i = i + 3) {
 		//printf("[%d] / [%d]\n", i, points.size());
 		float x = points[i], y = points[i+1], z = points[i+2];
@@ -65,7 +66,6 @@ void Cubes::SetGrid(std::vector<float>& points, E57* e57)
 		}
 
 
-		this->grid[indexX][indexY][indexZ] = true;
 		for (int j1 = -margin; j1 <= margin; ++j1)
 		{
 			for (int j2 = -margin; j2 <= margin; ++j2)

@@ -8,9 +8,12 @@ private:
 	int margin;
 
 	int voxelsInDimX, voxelsInDimY, voxelsInDimZ;
-	std::vector<std::vector<std::vector<bool>>> grid; //density values instead of just bool
+	std::vector<std::vector<std::vector<float>>> grid; //density values instead of just bool
 	std::vector<Triangle> triangles;
 
+	float isolevel = 0.2f;
+
+	float CalculateDensity(float distance, float sigma);
 	void GenerateMesh();
 	void GenerateCubeMesh(int x, int y, int z);
 public:
