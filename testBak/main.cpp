@@ -4,6 +4,7 @@
 #include "Camera.h"
 
 #include "MarchingCubes.h"
+#include "Cubes.h"
 
 e57::ustring path = "D:\\Bakalarka\\e57Files\\bunnyFloat.e57";
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -22,7 +23,8 @@ int main() {
     E57 e57(path);
     myGuiImplementation gui(win.getWindow(), &e57);
 
-    MarchingCubes cubes(0.005,3,e57);
+    MarchingCubes cubes(0.01,5,e57);
+    //Cubes cubes(0.01, 0, e57);
     //printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
     if (e57.getCount() <= 0)
     {

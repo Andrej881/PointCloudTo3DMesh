@@ -65,6 +65,10 @@ void Cubes::SetGrid(std::vector<float>& points, E57* e57)
 			continue;
 		}
 
+		if (margin == 0)
+		{
+			this->grid[indexX][indexY][indexZ] = true;
+		}
 
 		for (int j1 = -margin; j1 <= margin; ++j1)
 		{
@@ -85,10 +89,10 @@ void Cubes::SetGrid(std::vector<float>& points, E57* e57)
 			}
 		}
 	}
-	GenerateMesh();
+	GenerateMesh(e57);
 }
 
-void Cubes::GenerateMesh()
+void Cubes::GenerateMesh(E57* e57)
 {	
 	for (int i1 = 0; i1 < this->voxelsInDimX; i1++)
 	{
@@ -98,16 +102,27 @@ void Cubes::GenerateMesh()
 			{
 				if (this->grid[i1][i2][i3]) 
 				{
-					CreateCube(i1, i2, i3);					
+					CreateCube(i1, i2, i3, e57);					
 				}
 			}
 		}
 	}
 }
 
-void Cubes::CreateCube(int x, int y, int z)
+void Cubes::CreateCube(int x, int y, int z, E57 * e57)
 {
 	Cube cube;
+	float minx, miny, minz;
+	if (e57)
+	{
+		minx = e57->getInfo().minX;
+		miny = e57->getInfo().minY;
+		minz = e57->getInfo().minZ;
+	}
+	else
+	{
+		minx = miny = minz = -0.5f;
+	}
 
 	cube.verteces[0] = { x * this->voxelSize, y * this->voxelSize, z * this->voxelSize };	
 	cube.verteces[1] = { x * this->voxelSize + this->voxelSize, y * this->voxelSize, z * this->voxelSize };
@@ -118,6 +133,13 @@ void Cubes::CreateCube(int x, int y, int z)
 	cube.verteces[6] = { x * this->voxelSize + this->voxelSize, y * this->voxelSize, z * this->voxelSize + this->voxelSize };
 	cube.verteces[7] = { x * this->voxelSize + this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize + this->voxelSize };
 	
+	for (glm::vec3& ver : cube.verteces)
+	{
+		ver.x += minx;
+		ver.y += miny;
+		ver.z += minz;
+	}
+
 	//front (z-)
 	if (z <= 0 || (z > 0 && !this->grid[x][y][z - 1]))
 	{

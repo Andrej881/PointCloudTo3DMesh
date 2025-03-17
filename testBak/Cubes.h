@@ -43,8 +43,8 @@ private:
 	std::vector<std::vector<std::vector<bool>>> grid;
 	std::vector<Cube> cubes;
 
-	void GenerateMesh();
-	void CreateCube(int x, int y, int z);	
+	void GenerateMesh(E57* e57);
+	void CreateCube(int x, int y, int z, E57* e57);
 public:
 	void InitGrid(std::vector<float>& points, E57* e57);
 	Cubes(float voxelSize, int margin, E57& e57);

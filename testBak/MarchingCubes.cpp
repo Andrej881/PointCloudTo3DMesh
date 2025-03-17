@@ -91,11 +91,11 @@ void MarchingCubes::SetGrid(std::vector<float>& points, E57* e57)
 		}
 	}
 
-	GenerateMesh();
+	GenerateMesh(e57);
 	printf("num of triangles: %d\n", triangles.size());
 }
 
-glm::vec3 MarchingCubes::InterpolateEdge(int x, int y, int z, int edge)
+glm::vec3 MarchingCubes::InterpolateEdge(int x, int y, int z, int edge, E57* e57)
 {
 	glm::vec3 cornerPositions[8] = {
 		glm::vec3(x, y, z),
@@ -137,17 +137,29 @@ glm::vec3 MarchingCubes::InterpolateEdge(int x, int y, int z, int edge)
 	glm::vec3 interpolatedVertex;
 	
 	if (fabs(isolevel - val1) < 0.00001)
-		return p1 * this->voxelSize;
-	if (fabs(isolevel - val2) < 0.00001)
-		return p2 * this->voxelSize;
-	if (fabs(val1 - val2) < 0.00001)
-		return p1 * this->voxelSize;
-	float mu = (isolevel - val1) / (val2 - val1);
-	interpolatedVertex.x = p1.x + mu * (p2.x - p1.x);
-	interpolatedVertex.y = p1.y + mu * (p2.y - p1.y);
-	interpolatedVertex.z = p1.z + mu * (p2.z - p1.z);
+		interpolatedVertex = p1;
+	else if (fabs(isolevel - val2) < 0.00001)
+		interpolatedVertex = p2 ;
+	else if (fabs(val1 - val2) < 0.00001)
+		interpolatedVertex = p1;
+	else
+	{
+		float mu = (isolevel - val1) / (val2 - val1);
+		interpolatedVertex.x = p1.x + mu * (p2.x - p1.x);
+		interpolatedVertex.y = p1.y + mu * (p2.y - p1.y);
+		interpolatedVertex.z = p1.z + mu * (p2.z - p1.z);
+	}
+	interpolatedVertex *= this->voxelSize;
+	if (e57)
+	{
+		interpolatedVertex.x += e57->getInfo().minX;
+		interpolatedVertex.y += e57->getInfo().minY;
+		interpolatedVertex.z += e57->getInfo().minZ;
+	}
+	else
+		interpolatedVertex -= glm::vec3(0.5f);
 
-	return interpolatedVertex * this->voxelSize;
+	return interpolatedVertex;
 }
 
 void MarchingCubes::CreateTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
@@ -174,7 +186,7 @@ float MarchingCubes::CalculateDensity(float distance, float sigma)
 	return exp(-0.5 * (distance * distance) / (sigma * sigma));
 }
 
-void MarchingCubes::GenerateMesh()
+void MarchingCubes::GenerateMesh(E57* e57)
 {
 	for (int i1 = 0; i1 < this->voxelsInDimX; i1++)
 	{
@@ -184,14 +196,14 @@ void MarchingCubes::GenerateMesh()
 			{
 				if (this->grid[i1][i2][i3])
 				{
-					GenerateCubeMesh(i1, i2, i3);
+					GenerateCubeMesh(i1, i2, i3, e57);
 				}
 			}
 		}
 	}
 }
 int allEdges = 0;
-void MarchingCubes::GenerateCubeMesh(int x, int y, int z)
+void MarchingCubes::GenerateCubeMesh(int x, int y, int z, E57* e57)
 {
 	if (x + 1 >= this->voxelsInDimX || y + 1 >= this->voxelsInDimY || z + 1 >= this->voxelsInDimZ) 
 		return;
@@ -217,7 +229,7 @@ void MarchingCubes::GenerateCubeMesh(int x, int y, int z)
 	glm::vec3 vertices[12];
 	for (int i = 0; i < 12; i++) {
 		if (edges & (1 << i)) {
-			vertices[i] = InterpolateEdge(x, y, z, i); // Interpolate edge i
+			vertices[i] = InterpolateEdge(x, y, z, i, e57); // Interpolate edge i
 			++intersected;
 		}
 	}
