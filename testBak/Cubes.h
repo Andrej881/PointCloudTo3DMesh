@@ -15,7 +15,6 @@ struct Triangle
 		auto u = b - a;
 		auto v = c - a;
 		normal = -glm::normalize(glm::cross(u, v));
-		//normal = glm::vec3(0, 0, 0);
 	}
 };
 
@@ -34,7 +33,7 @@ struct Cube
 	Triangle triangles[12];
 };
 
-class MarginCubes
+class Cubes
 {
 private:
 	float voxelSize;
@@ -48,11 +47,11 @@ private:
 	void CreateCube(int x, int y, int z);	
 public:
 	void InitGrid(std::vector<float>& points, E57* e57);
-	MarginCubes(float voxelSize, int margin, E57& e57);
-	MarginCubes(float voxelSize, int margin, std::vector<float>& points);
+	Cubes(float voxelSize, int margin, E57& e57);
+	Cubes(float voxelSize, int margin, std::vector<float>& points);
 	void SetGrid(std::vector<float>& points, E57* e57);
 	std::vector<Cube>& getCubes();
-	~MarginCubes();
+	~Cubes();
 	int numOfTriangels = 0;
 };
 

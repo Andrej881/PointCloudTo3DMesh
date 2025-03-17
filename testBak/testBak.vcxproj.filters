@@ -60,8 +60,14 @@
     <ClCompile Include="nfd_win.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="MarginCubes.cpp">
+    <ClCompile Include="Cubes.cpp">
       <Filter>Source Files\meshAlgorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="MarchingCubes.cpp">
+      <Filter>Source Files\meshAlgorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="MarchingCubeLookupTable.h">
+      <Filter>Header Files\meshAlgorithms</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -104,7 +110,10 @@
     <ClInclude Include="nfd_common.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="MarginCubes.h">
+    <ClInclude Include="Cubes.h">
+      <Filter>Header Files\meshAlgorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="MarchingCubes.h">
       <Filter>Header Files\meshAlgorithms</Filter>
     </ClInclude>
   </ItemGroup>

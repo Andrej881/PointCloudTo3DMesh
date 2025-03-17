@@ -1,24 +1,24 @@
-#include "MarginCubes.h"
+#include "Cubes.h"
 
-void MarginCubes::InitGrid(std::vector<float>& points, E57* e57)
+void Cubes::InitGrid(std::vector<float>& points, E57* e57)
 {
 	this->cubes.clear();
 	this->grid.clear();
 	if (e57)
 	{
 		NormilizedPointsInfo& info = e57->getInfo();
-		this->voxelsInDimX = ceil((info.maxX - info.minX) / voxelSize) + 1;
-		this->voxelsInDimY = ceil((info.maxY - info.minY) / voxelSize) + 1;
-		this->voxelsInDimZ = ceil((info.maxZ - info.minZ) / voxelSize) + 1;
+		this->voxelsInDimX = (int)((info.maxX - info.minX) / voxelSize) + 1;
+		this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 1;
+		this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 1;
 	}
 	else
 	{
-		this->voxelsInDimX = this->voxelsInDimY = this->voxelsInDimZ = ceil(1.0f / voxelSize) + 1;
+		this->voxelsInDimX = this->voxelsInDimY = this->voxelsInDimZ = (int)(1.0f / voxelSize) + 1;
 	}
 	this->grid = std::vector<std::vector<std::vector<bool>>>(this->voxelsInDimX, std::vector<std::vector<bool>>(this->voxelsInDimY, std::vector<bool>(this->voxelsInDimZ, false)));
 }
 
-MarginCubes::MarginCubes(float voxelSize, int margin, E57& e57)
+Cubes::Cubes(float voxelSize, int margin, E57& e57)
 {
 	this->margin = margin;
 	this->voxelSize = voxelSize;
@@ -27,7 +27,7 @@ MarginCubes::MarginCubes(float voxelSize, int margin, E57& e57)
 	SetGrid(e57.getPoints(), &e57);
 }
 
-MarginCubes::MarginCubes(float voxelSize, int margin,  std::vector<float>& points)
+Cubes::Cubes(float voxelSize, int margin,  std::vector<float>& points)
 {
 	this->margin = margin;
 	this->voxelSize = voxelSize;
@@ -36,7 +36,7 @@ MarginCubes::MarginCubes(float voxelSize, int margin,  std::vector<float>& point
 	SetGrid(points, nullptr);
 }
 
-void MarginCubes::SetGrid(std::vector<float>& points, E57* e57)
+void Cubes::SetGrid(std::vector<float>& points, E57* e57)
 {
 	//this->grid[0][0][0] = true;
 	//this->grid[this->voxelsInDim-1][this->voxelsInDim-1][this->voxelsInDim-1] = true;
@@ -88,9 +88,8 @@ void MarginCubes::SetGrid(std::vector<float>& points, E57* e57)
 	GenerateMesh();
 }
 
-void MarginCubes::GenerateMesh()
+void Cubes::GenerateMesh()
 {	
-	float min = -0.5;
 	for (int i1 = 0; i1 < this->voxelsInDimX; i1++)
 	{
 		for (int i2 = 0; i2 < this->voxelsInDimY; i2++)
@@ -106,7 +105,7 @@ void MarginCubes::GenerateMesh()
 	}
 }
 
-void MarginCubes::CreateCube(int x, int y, int z)
+void Cubes::CreateCube(int x, int y, int z)
 {
 	Cube cube;
 
@@ -127,7 +126,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 		cube.sides[0].triangles[1] = { cube.verteces[1] , cube.verteces[4] , cube.verteces[2] };
 
 		cube.sides[0].triangles[0].computeNormal();
-		cube.sides[0].triangles[1].computeNormal();
+		cube.sides[0].triangles[1].normal = cube.sides[0].triangles[0].normal;
 
 		this->numOfTriangels += 2;
 	}
@@ -140,7 +139,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 		cube.sides[1].triangles[1] = { cube.verteces[2] , cube.verteces[5] , cube.verteces[3] };
 
 		cube.sides[1].triangles[0].computeNormal();
-		cube.sides[1].triangles[1].computeNormal();
+		cube.sides[1].triangles[1].normal = cube.sides[1].triangles[0].normal;
 
 		this->numOfTriangels += 2;
 	}
@@ -153,7 +152,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 		cube.sides[2].triangles[1] = { cube.verteces[4] , cube.verteces[6] , cube.verteces[7] };
 
 		cube.sides[2].triangles[0].computeNormal();
-		cube.sides[2].triangles[1].computeNormal();
+		cube.sides[2].triangles[1].normal = cube.sides[2].triangles[0].normal;
 
 		this->numOfTriangels += 2;
 	}
@@ -166,7 +165,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 		cube.sides[3].triangles[1] = { cube.verteces[3] , cube.verteces[5] , cube.verteces[7] };
 
 		cube.sides[3].triangles[0].computeNormal();
-		cube.sides[3].triangles[1].computeNormal();
+		cube.sides[3].triangles[1].normal = cube.sides[3].triangles[0].normal;
 
 		this->numOfTriangels += 2;
 	}
@@ -179,7 +178,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 		cube.sides[4].triangles[1] = { cube.verteces[4] , cube.verteces[7] , cube.verteces[5] };
 
 		cube.sides[4].triangles[0].computeNormal();
-		cube.sides[4].triangles[1].computeNormal();
+		cube.sides[4].triangles[1].normal = cube.sides[4].triangles[0].normal;
 
 		this->numOfTriangels += 2;
 	}
@@ -192,7 +191,7 @@ void MarginCubes::CreateCube(int x, int y, int z)
 		cube.sides[5].triangles[1] = { cube.verteces[1] , cube.verteces[3] , cube.verteces[6] };
 
 		cube.sides[5].triangles[0].computeNormal();
-		cube.sides[5].triangles[1].computeNormal();
+		cube.sides[5].triangles[1].normal = cube.sides[5].triangles[0].normal;
 
 		this->numOfTriangels += 2;
 	}
@@ -200,11 +199,11 @@ void MarginCubes::CreateCube(int x, int y, int z)
 	this->cubes.push_back(cube);
 }
 
-std::vector<Cube>& MarginCubes::getCubes()
+std::vector<Cube>& Cubes::getCubes()
 {
 	return this->cubes;
 }
 
-MarginCubes::~MarginCubes()
+Cubes::~Cubes()
 {
 }

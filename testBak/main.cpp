@@ -3,9 +3,9 @@
 #include "Shader.h"
 #include "Camera.h"
 
-#include "MarginCubes.h"
+#include "MarchingCubes.h"
 
-e57::ustring path = "D:\\Bakalarka\\e57Files\\Station018.e57";
+e57::ustring path = "D:\\Bakalarka\\e57Files\\bunnyFloat.e57";
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
@@ -21,36 +21,15 @@ int main() {
 
     E57 e57(path);
     myGuiImplementation gui(win.getWindow(), &e57);
-    
-    std::vector<float> points = std::vector<float>();
 
-    /*for (float i = -0.5; i <= 0.5; i = i + 0.1)
-    {
-        for (float j = -0.5; j <= 0.5; j = j + 0.1)
-        {
-            for (float k = -0.5; k <= 0.5; k = k + 0.1)
-            {
-                points.push_back(i);
-                points.push_back(j);
-                points.push_back(k);
-            }
-        }
-    }
-    points.push_back(-0.5); points.push_back(-0.5); points.push_back(-0.5);
-
-    MarginCubes cubes(1, 0, points);
-    win.setPointCount(points.size() / 3);*/
-
-    MarginCubes cubes(0.01,1,e57);
-    printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
-
+    MarchingCubes cubes(0.001,5,e57);
+    //printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
     if (e57.getCount() <= 0)
     {
         return -1;
     }
 
     win.setPointCount(e57.getCount());
-    //win.LoadPointCloudToGPU(e57.getPoints());
     win.LoadMeshToGPUFromCubes(cubes);
     win.setCallBacks(mouse_callback, scroll_callback);
     Shader shader;

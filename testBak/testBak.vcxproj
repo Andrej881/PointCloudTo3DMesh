@@ -136,7 +136,9 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="E57.cpp" />
-    <ClCompile Include="MarginCubes.cpp" />
+    <ClCompile Include="Cubes.cpp" />
+    <ClCompile Include="MarchingCubeLookupTable.h" />
+    <ClCompile Include="MarchingCubes.cpp" />
     <ClCompile Include="myGuiImplemnetation.cpp" />
     <ClCompile Include="nfd_common.c" />
     <ClCompile Include="nfd_win.cpp" />
@@ -155,7 +157,8 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="E57.h" />
-    <ClInclude Include="MarginCubes.h" />
+    <ClInclude Include="Cubes.h" />
+    <ClInclude Include="MarchingCubes.h" />
     <ClInclude Include="myGuiImplemnetation.h" />
     <ClInclude Include="nfd.h" />
     <ClInclude Include="nfd_common.h" />

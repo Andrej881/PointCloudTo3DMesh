@@ -11,7 +11,7 @@
 #include "Shader.h"
 #include "Camera.h"
 
-#include "MarginCubes.h"
+#include "MarchingCubes.h"
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -26,7 +26,7 @@ private:
 	int width, height;
 	bool cursorDisabled, cPressed;
 	float rotations[3];
-	MarginCubes* cubes;
+	MarchingCubes* cubes;
 	bool renderMesh;
 
 public:
@@ -40,7 +40,7 @@ public:
 	void Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui);
 	GLFWwindow* getWindow();
 	void LoadPointCloudToGPU(const std::vector<float>& points);
-	void LoadMeshToGPUFromCubes(MarginCubes& cubes);
+	void LoadMeshToGPUFromCubes(MarchingCubes& cubes);
 
 	~Window();
 };

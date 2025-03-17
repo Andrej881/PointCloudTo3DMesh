@@ -109,13 +109,13 @@ void Window::LoadPointCloudToGPU(const std::vector<float>& points) {
     }
 }
 
-void Window::LoadMeshToGPUFromCubes(MarginCubes& cubes)
+void Window::LoadMeshToGPUFromCubes(MarchingCubes& cubes)
 {
     this->renderMesh = true;
     this->cubes = &cubes;
 
     std::vector<float> triangles = std::vector<float>();
-    for (Cube cube : cubes.getCubes())
+    /*for (Cube cube : cubes.getCubes())
     {
         for (Side side : cube.sides)
         {
@@ -150,20 +150,34 @@ void Window::LoadMeshToGPUFromCubes(MarginCubes& cubes)
             
         }
 
-        /*for (Triangle triangle : cube.triangles)
-        {
-            triangles.push_back(triangle.a.x);
-            triangles.push_back(triangle.a.y);
-            triangles.push_back(triangle.a.z);
+        
+    }*/
 
-            triangles.push_back(triangle.b.x);
-            triangles.push_back(triangle.b.y);
-            triangles.push_back(triangle.b.z);
+    for (Triangle triangle : cubes.getTriangles())
+    {
+        triangles.push_back(triangle.a.x);
+        triangles.push_back(triangle.a.y);
+        triangles.push_back(triangle.a.z);
 
-            triangles.push_back(triangle.c.x);
-            triangles.push_back(triangle.c.y);
-            triangles.push_back(triangle.c.z);
-        }*/
+        triangles.push_back(triangle.b.x);
+        triangles.push_back(triangle.b.y);
+        triangles.push_back(triangle.b.z);
+
+        triangles.push_back(triangle.c.x);
+        triangles.push_back(triangle.c.y);
+        triangles.push_back(triangle.c.z);
+
+        triangles.push_back(triangle.normal.x);
+        triangles.push_back(triangle.normal.y);
+        triangles.push_back(triangle.normal.z);
+
+        triangles.push_back(triangle.normal.x);
+        triangles.push_back(triangle.normal.y);
+        triangles.push_back(triangle.normal.z);
+
+        triangles.push_back(triangle.normal.x);
+        triangles.push_back(triangle.normal.y);
+        triangles.push_back(triangle.normal.z);
     }
 
     glGenVertexArrays(1, &VAO);
@@ -230,7 +244,7 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui)
 
     //glPointSize(3.0f);
     if (this->renderMesh)
-        glDrawArrays(GL_TRIANGLES, 0, cubes->numOfTriangels * 3 * 2);    
+        glDrawArrays(GL_TRIANGLES, 0, cubes->getTriangles().size() * 3 * 2);    
     else
         glDrawArrays(GL_POINTS, 0, pointCount);
     glBindVertexArray(0);
