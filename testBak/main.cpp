@@ -41,7 +41,7 @@ int main() {
     MarginCubes cubes(1, 0, points);
     win.setPointCount(points.size() / 3);*/
 
-    MarginCubes cubes(0.00025,1,e57);
+    MarginCubes cubes(0.01,1,e57);
     printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
 
     if (e57.getCount() <= 0)
