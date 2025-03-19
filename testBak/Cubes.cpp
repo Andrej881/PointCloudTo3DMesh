@@ -1,6 +1,6 @@
 #include "Cubes.h"
 
-void Cubes::InitGrid(std::vector<float>& points, E57* e57)
+void Cubes::InitGrid(E57* e57)
 {
 	this->cubes.clear();
 	this->grid.clear();
@@ -23,7 +23,7 @@ Cubes::Cubes(float voxelSize, int margin, E57& e57)
 	this->margin = margin;
 	this->voxelSize = voxelSize;
 
-	InitGrid(e57.getPoints(), &e57);
+	InitGrid(&e57);
 	SetGrid(e57.getPoints(), &e57);
 }
 
@@ -32,7 +32,7 @@ Cubes::Cubes(float voxelSize, int margin,  std::vector<float>& points)
 	this->margin = margin;
 	this->voxelSize = voxelSize;
 
-	InitGrid(points, nullptr);
+	InitGrid(nullptr);
 	SetGrid(points, nullptr);
 }
 
@@ -41,22 +41,21 @@ void Cubes::SetGrid(std::vector<float>& points, E57* e57)
 	//this->grid[0][0][0] = true;
 	//this->grid[this->voxelsInDim-1][this->voxelsInDim-1][this->voxelsInDim-1] = true;
 	// -0.5, 0.5
-
+	float minX, minY, minZ;
+	if (e57)
+	{
+		minX = e57->getInfo().minX;
+		minY = e57->getInfo().minY;
+		minZ = e57->getInfo().minZ;
+	}
+	else
+	{
+		minX = minY = minZ = -0.5;
+	}
 	for (int i = 0; i < points.size(); i = i + 3) {
 		//printf("[%d] / [%d]\n", i, points.size());
 		float x = points[i], y = points[i+1], z = points[i+2];
-
-		float minX, minY, minZ;
-		if (e57)
-		{
-			minX = e57->getInfo().minX;
-			minY = e57->getInfo().minY;
-			minZ = e57->getInfo().minZ;
-		}
-		else
-		{
-			minX = minY = minZ = -0.5;
-		}
+		
 		int indexX = (x - minX) / voxelSize, indexY = (y - minY) / voxelSize, indexZ = (z - minZ) / voxelSize;
 
 		if (indexX < 0 || indexY < 0 || indexZ < 0 || indexX >= this->voxelsInDimX || indexY >= this->voxelsInDimY || indexZ >= this->voxelsInDimZ)

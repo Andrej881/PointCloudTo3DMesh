@@ -46,7 +46,7 @@ private:
 	void GenerateMesh(E57* e57);
 	void CreateCube(int x, int y, int z, E57* e57);
 public:
-	void InitGrid(std::vector<float>& points, E57* e57);
+	void InitGrid(E57* e57);
 	Cubes(float voxelSize, int margin, E57& e57);
 	Cubes(float voxelSize, int margin, std::vector<float>& points);
 	void SetGrid(std::vector<float>& points, E57* e57);

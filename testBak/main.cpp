@@ -19,11 +19,10 @@ bool firstMouse = true;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 Window win(1080, 720);
 int main() {
-
     E57 e57(path);
     myGuiImplementation gui(win.getWindow(), &e57);
 
-    MarchingCubes cubes(0.01,5,e57);
+    MarchingCubes cubes(0.001,1,e57);
     //Cubes cubes(0.01, 0, e57);
     //printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
     if (e57.getCount() <= 0)
