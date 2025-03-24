@@ -1,40 +1,50 @@
 #pragma once
-#include "Cubes.h"
 #include "MarchingCubeLookupTable.h"
+#include "Triangle.h"
+#include "ReconstructionAlgorithm.h"
 
 #include <ctime>
 #include <thread>
 #include <mutex>
 
 
-class MarchingCubes
+class MarchingCubes : public ReconstructionAlgorithm
 {
 private:
 	std::mutex trianglesMutex;
 
 	float voxelSize;
 	int margin;
+	float minX, minY, minZ;
 
 	int voxelsInDimX, voxelsInDimY, voxelsInDimZ;
 	std::vector<std::vector<std::vector<float>>> grid; 
-	std::vector<Triangle> triangles;
 
-	float isolevel = 0.25f;
+	float isolevel = 0.1f;
 
 	float CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index);
-	void GenerateMesh(E57* e57);
-	void GenerateCubeMesh(int x, int y, int z, E57* e57);
+	void GenerateMesh();
+	void GenerateCubeMesh(int x, int y, int z);
 
-	void SetGridInRange(std::vector<float>& points, E57* e57, int startIdx, int endIdx);
-	void GenerateMeshInRange(int startX, int endX, int startY, int endY, int startZ, int endZ, E57* e57);
-public:
-	void InitGrid(E57* e57);
-	MarchingCubes(float voxelSize, int margin, E57& e57);
-	MarchingCubes(float voxelSize, int margin, std::vector<float>& points);
-	void SetGrid(std::vector<float>& points, E57* e57);
-	glm::vec3 InterpolateEdge(int x, int y, int z, int edge, E57* e57);
-	std::vector<Triangle>& getTriangles();
+	void SetGridInRange(int startIdx, int endIdx);
+	void GenerateMeshInRange(int startX, int endX, int startY, int endY, int startZ, int endZ);
+
+	glm::vec3 InterpolateEdge(int x, int y, int z, int edge);
 	void CreateTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c);
+
+	void InitGrid();
+	void SetGrid();
+public:
+	MarchingCubes(E57* e57);
+	MarchingCubes(float voxelSize, int margin, E57* e57);
+
+	void SetVoxelSize(float voxelSize);
+	void SetMargin(int margin);
+	void SetIsoLevel(float isolevel);
+
+	void Run() override;
+	void SetUp() override;
+
 	~MarchingCubes();
 };
 

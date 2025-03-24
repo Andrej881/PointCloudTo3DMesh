@@ -2,21 +2,8 @@
 
 #include "E57.h"
 #include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
-struct Triangle
-{
-	glm::vec3 a, b, c;
-	glm::vec3 normal;
-
-	void computeNormal() {
-		auto u = b - a;
-		auto v = c - a;
-		normal = -glm::normalize(glm::cross(u, v));
-	}
-};
+#include "ReconstructionAlgorithm.h"
 
 struct Side {
 	bool active = false;
@@ -25,7 +12,7 @@ struct Side {
 
 struct Cube
 {
-	glm::vec3 verteces[8];
+	E57Point verteces[8];
 
 	Side sides[6]; // front, leftSide, rightSide, back, up, down
 	
@@ -33,25 +20,30 @@ struct Cube
 	Triangle triangles[12];
 };
 
-class Cubes
+class Cubes : public ReconstructionAlgorithm
 {
 private:
 	float voxelSize;
 	int margin;
+	float minX, minY, minZ;
 
 	int voxelsInDimX, voxelsInDimY, voxelsInDimZ;
 	std::vector<std::vector<std::vector<bool>>> grid;
-	std::vector<Cube> cubes;
 
-	void GenerateMesh(E57* e57);
-	void CreateCube(int x, int y, int z, E57* e57);
+	void GenerateMesh();
+	void CreateCube(int x, int y, int z);
+	void InitGrid();
+	void SetGrid();
 public:
-	void InitGrid(E57* e57);
-	Cubes(float voxelSize, int margin, E57& e57);
-	Cubes(float voxelSize, int margin, std::vector<float>& points);
-	void SetGrid(std::vector<float>& points, E57* e57);
-	std::vector<Cube>& getCubes();
+	Cubes(E57 * e57);
+	Cubes(float voxelSize, int margin, E57* e57);
+
+	void SetVoxelSize(float voxelSize);
+	void SetMargin(int margin);
+
+	void Run() override;
+	void SetUp() override;
+
 	~Cubes();
-	int numOfTriangels = 0;
 };
 

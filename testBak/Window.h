@@ -11,7 +11,7 @@
 #include "Shader.h"
 #include "Camera.h"
 
-#include "MarchingCubes.h"
+#include "AlgorithmControl.h"
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -26,9 +26,7 @@ private:
 	int width, height;
 	bool cursorDisabled, cPressed;
 	float rotations[3];
-	MarchingCubes* cubes;
 	bool renderMesh;
-
 public:
 
 	bool isCursorDisabled();
@@ -37,10 +35,10 @@ public:
 	void ProcessInput(float deltaTime, Camera& camera);
 	Window(unsigned int width, unsigned int height);
 	void setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll);
-	void Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui);
+	void Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui, AlgorithmControl& algorithms);
 	GLFWwindow* getWindow();
-	void LoadPointCloudToGPU(const std::vector<float>& points);
-	void LoadMeshToGPUFromCubes(MarchingCubes& cubes);
+	void LoadPointCloudToGPU(E57 & e57);
+	void LoadMeshToGPU(AlgorithmControl& algorithms);
 
 	~Window();
 };

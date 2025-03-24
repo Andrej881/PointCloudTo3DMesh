@@ -134,14 +134,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AlgorithmControl.cpp" />
+    <ClCompile Include="BallPivoting.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="E57.cpp" />
     <ClCompile Include="Cubes.cpp" />
+    <ClCompile Include="KDTree.cpp" />
     <ClCompile Include="MarchingCubeLookupTable.h" />
     <ClCompile Include="MarchingCubes.cpp" />
     <ClCompile Include="myGuiImplemnetation.cpp" />
     <ClCompile Include="nfd_common.c" />
     <ClCompile Include="nfd_win.cpp" />
+    <ClCompile Include="ReconstructionAlgorithm.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Window.cpp" />
@@ -155,14 +159,20 @@
     <None Include="vertexShader.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AlgorithmControl.h" />
+    <ClInclude Include="BallPivoting.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="E57.h" />
     <ClInclude Include="Cubes.h" />
+    <ClInclude Include="E57Point.h" />
+    <ClInclude Include="KDTree.h" />
     <ClInclude Include="MarchingCubes.h" />
     <ClInclude Include="myGuiImplemnetation.h" />
     <ClInclude Include="nfd.h" />
     <ClInclude Include="nfd_common.h" />
+    <ClInclude Include="ReconstructionAlgorithm.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="Triangle.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

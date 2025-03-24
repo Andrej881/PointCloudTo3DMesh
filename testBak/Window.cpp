@@ -12,7 +12,6 @@ void Window::setPointCount(int count)
 
 Window::Window(unsigned int width, unsigned int height)
 {
-    this->cubes = nullptr;
     this->renderMesh = false;
     this->cPressed = false;
     this->cursorDisabled = true;
@@ -80,104 +79,69 @@ GLFWwindow* Window::getWindow()
     return this->window;
 }
 
-void Window::LoadPointCloudToGPU(const std::vector<float>& points) {
+void Window::LoadPointCloudToGPU(E57& e57) {
 
-    if (VBO == 0) {
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
+	std::vector<float> points = std::vector<float>();
+    for (E57Point& point : e57.getPoints())
+    {
+		points.push_back(point.position.x);
+		points.push_back(point.position.y);
+		points.push_back(point.position.z);
 
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float), points.data(), GL_STATIC_DRAW);
-                
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+		points.push_back(point.normal.x);
+		points.push_back(point.normal.y);
+		points.push_back(point.normal.z);
     }
-    else {
-        // If the VBO already exists, update it with the new points
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float), points.data(), GL_STATIC_DRAW);
+    
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float), points.data(), GL_STATIC_DRAW);
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
 }
 
-void Window::LoadMeshToGPUFromCubes(MarchingCubes& cubes)
+void Window::LoadMeshToGPU(AlgorithmControl& algorithms)
 {
     this->renderMesh = true;
-    this->cubes = &cubes;
-
-    std::vector<float> triangles = std::vector<float>();
-    /*for (Cube cube : cubes.getCubes())
+	std::vector<Triangle>& triangles = algorithms.GetTriangles();
+    printf("num of triangles: %d\n", triangles.size());
+    std::vector<float> data;
+    for (Triangle triangle : triangles)
     {
-        for (Side side : cube.sides)
-        {
-            if (!side.active)
-                continue;
-            for (Triangle triangle : side.triangles)
-            {
-                triangles.push_back(triangle.a.x);
-                triangles.push_back(triangle.a.y);
-                triangles.push_back(triangle.a.z);
+        data.push_back(triangle.a.position.x);
+        data.push_back(triangle.a.position.y);
+        data.push_back(triangle.a.position.z);
 
-                triangles.push_back(triangle.b.x);
-                triangles.push_back(triangle.b.y);
-                triangles.push_back(triangle.b.z);
+        data.push_back(triangle.normal.x);
+        data.push_back(triangle.normal.y);
+        data.push_back(triangle.normal.z);
 
-                triangles.push_back(triangle.c.x);
-                triangles.push_back(triangle.c.y);
-                triangles.push_back(triangle.c.z);
+        data.push_back(triangle.b.position.x);
+        data.push_back(triangle.b.position.y);
+        data.push_back(triangle.b.position.z);
 
-                triangles.push_back(triangle.normal.x);
-                triangles.push_back(triangle.normal.y);
-                triangles.push_back(triangle.normal.z);
+        data.push_back(triangle.normal.x);
+        data.push_back(triangle.normal.y);
+        data.push_back(triangle.normal.z);
 
-                triangles.push_back(triangle.normal.x);
-                triangles.push_back(triangle.normal.y);
-                triangles.push_back(triangle.normal.z);
+        data.push_back(triangle.c.position.x);
+        data.push_back(triangle.c.position.y);
+        data.push_back(triangle.c.position.z);
 
-                triangles.push_back(triangle.normal.x);
-                triangles.push_back(triangle.normal.y);
-                triangles.push_back(triangle.normal.z);
-            }
-            
-        }
-
-        
-    }*/
-
-    for (Triangle triangle : cubes.getTriangles())
-    {
-        triangles.push_back(triangle.a.x);
-        triangles.push_back(triangle.a.y);
-        triangles.push_back(triangle.a.z);
-
-        triangles.push_back(triangle.b.x);
-        triangles.push_back(triangle.b.y);
-        triangles.push_back(triangle.b.z);
-
-        triangles.push_back(triangle.c.x);
-        triangles.push_back(triangle.c.y);
-        triangles.push_back(triangle.c.z);
-
-        triangles.push_back(triangle.normal.x);
-        triangles.push_back(triangle.normal.y);
-        triangles.push_back(triangle.normal.z);
-
-        triangles.push_back(triangle.normal.x);
-        triangles.push_back(triangle.normal.y);
-        triangles.push_back(triangle.normal.z);
-
-        triangles.push_back(triangle.normal.x);
-        triangles.push_back(triangle.normal.y);
-        triangles.push_back(triangle.normal.z);
+        data.push_back(triangle.normal.x);
+        data.push_back(triangle.normal.y);
+        data.push_back(triangle.normal.z);
     }
 
     glGenVertexArrays(1, &VAO);
@@ -185,19 +149,17 @@ void Window::LoadMeshToGPUFromCubes(MarchingCubes& cubes)
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, triangles.size() * sizeof(float), triangles.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(9 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
-
-
 
 void Window::setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll)
 {
@@ -205,7 +167,7 @@ void Window::setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll)
     glfwSetScrollCallback(window, scroll);
 }
 
-void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui)
+void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui, AlgorithmControl& algorithms)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -229,6 +191,7 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui)
     model = glm::rotate(model, glm::radians(rotations[2]), glm::vec3(0.0f, 0.0f, 1.0f));
     ourShader.setMat4("model", model);
 
+    //glm::vec3 lightPos(0.0f, 1.2f, 1.5f);
     glm::vec3 lightPos(1.0f, 1.0f, 1.0f);
     ourShader.setVec3("lightPos", lightPos);
 
@@ -244,23 +207,23 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui)
 
     //glPointSize(3.0f);
     if (this->renderMesh)
-        glDrawArrays(GL_TRIANGLES, 0, cubes->getTriangles().size() * 3 * 2);    
+        glDrawArrays(GL_TRIANGLES, 0, algorithms.GetTriangles().size() * 3 * 2);    
     else
-        glDrawArrays(GL_POINTS, 0, pointCount);
+        glDrawArrays(GL_POINTS, 0, pointCount*2);
     glBindVertexArray(0);
     
     auto result = gui.Render(rotations);
     if (result == 0)
     {
-        this->cubes->InitGrid(gui.e);
-        this->cubes->SetGrid(gui.e->getPoints(), gui.e);
+        algorithms.SetUp();
+        algorithms.Run();
         if (this->renderMesh)
         {
-            this->LoadMeshToGPUFromCubes(*this->cubes);
+            this->LoadMeshToGPU(algorithms);
         }
         else
         {
-            this->LoadPointCloudToGPU(gui.e->getPoints());
+            this->LoadPointCloudToGPU(*gui.e);
         }
         this->setPointCount(gui.e->getCount());
     }
@@ -269,11 +232,11 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui)
         if (this->renderMesh)
         {
             this->renderMesh = false;
-            this->LoadPointCloudToGPU(gui.e->getPoints());
+            this->LoadPointCloudToGPU(*gui.e);
         }
         else
         {
-            this->LoadMeshToGPUFromCubes(*this->cubes);
+            this->LoadMeshToGPU(algorithms);
         }
     }
     glfwSwapBuffers(window);

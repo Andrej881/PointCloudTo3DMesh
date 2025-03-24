@@ -5,65 +5,63 @@ struct Help {
 };
 Help maxExponent = { -1000, 0 }, minExponent = { 1000, 0 }, maxResult = { 0,  -1000 }, minResult = {0, 1000};
 
-void MarchingCubes::InitGrid(E57* e57)
+void MarchingCubes::InitGrid()
 {
-	this->triangles.clear();
 	this->grid.clear();
-	if (e57)
-	{
-		NormilizedPointsInfo& info = e57->getInfo();
-		this->voxelsInDimX = (int)((info.maxX - info.minX) / voxelSize) + 1;
-		this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 1;
-		this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 1;
-	}
-	else
-	{
-		this->voxelsInDimX = this->voxelsInDimY = this->voxelsInDimZ = (int)(1.0f / voxelSize) + 1;
-	}
+
+	NormilizedPointsInfo& info = e57->getInfo();
+	this->voxelsInDimX = (int)((info.maxX - info.minX) / voxelSize) + 1;
+	this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 1;
+	this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 1; this->voxelsInDimX = this->voxelsInDimY = this->voxelsInDimZ = (int)(1.0f / voxelSize) + 1;
+	
 	this->grid = std::vector<std::vector<std::vector<float>>>(this->voxelsInDimX, std::vector<std::vector<float>>(this->voxelsInDimY, std::vector<float>(this->voxelsInDimZ, 0.0f)));
 }
 
-MarchingCubes::MarchingCubes(float voxelSize, int margin, E57& e57)
+MarchingCubes::MarchingCubes(E57* e57) : ReconstructionAlgorithm(e57)
 {
-	clock_t start_time = clock();
+	this->margin = 5;
+	this->voxelSize = 0.01f;
+}
+
+MarchingCubes::MarchingCubes(float voxelSize, int margin, E57*e57) : ReconstructionAlgorithm(e57)
+{
 
 	this->margin = margin;
 	this->voxelSize = voxelSize;
-
-	InitGrid(&e57);
-	SetGrid(e57.getPoints(), &e57);
-
-	clock_t end_time = clock(); 
-	double elapsed_time = double(end_time - start_time) / CLOCKS_PER_SEC;
-	std::cout << "Algorithm took " << elapsed_time << " seconds." << std::endl;
 }
 
-MarchingCubes::MarchingCubes(float voxelSize, int margin, std::vector<float>& points)
+void MarchingCubes::SetVoxelSize(float voxelSize)
+{
+	this->voxelSize = voxelSize;
+}
+
+void MarchingCubes::SetMargin(int margin)
 {
 	this->margin = margin;
-	this->voxelSize = voxelSize;
-
-	InitGrid(nullptr);
-	SetGrid(points, nullptr);
 }
 
-void MarchingCubes::SetGrid(std::vector<float>& points, E57* e57)
+void MarchingCubes::SetIsoLevel(float isolevel)
+{
+	this->isolevel = isolevel;
+}
+
+void MarchingCubes::SetGrid()
 {
 	
-	// -0.5, 0.5
-	
+	// -0.5, 0.5	
+	int pointCount = e57->getPoints().size();
 	int numThreads = std::thread::hardware_concurrency();
-	int chunkSize = points.size() / (numThreads * 3);
+	int chunkSize = pointCount / numThreads;
 
 	std::vector<std::thread> threads;
 
 	// Create threads to process the points in parallel
 	for (int t = 0; t < numThreads; ++t)
 	{
-		int startIdx = t * chunkSize * 3;
-		int endIdx = (t == numThreads - 1) ? points.size() : (startIdx + chunkSize * 3);
+		int startIdx = t * chunkSize;
+		int endIdx = (t == numThreads - 1) ? pointCount : (startIdx + chunkSize);
 
-		threads.push_back(std::thread(&MarchingCubes::SetGridInRange, this, std::ref(points), e57, startIdx, endIdx));
+		threads.push_back(std::thread(&MarchingCubes::SetGridInRange, this, startIdx, endIdx));
 	}
 
 	// Join all threads to ensure they complete before continuing
@@ -77,11 +75,10 @@ void MarchingCubes::SetGrid(std::vector<float>& points, E57* e57)
 	//printf("Max Result exp[%f] res[%f]\n", maxResult.exponent, maxResult.result);
 	//printf("Min Result exp[%f] res[%f]\n\n", minResult.exponent, minResult.result);
 
-	GenerateMesh(e57);
 	//printf("num of triangles: %d\n", triangles.size());
 }
 
-glm::vec3 MarchingCubes::InterpolateEdge(int x, int y, int z, int edge, E57* e57)
+glm::vec3 MarchingCubes::InterpolateEdge(int x, int y, int z, int edge)
 {
 	glm::vec3 cornerPositions[8] = {
 		glm::vec3(x, y, z),
@@ -148,23 +145,17 @@ void MarchingCubes::CreateTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
 	if (a.x == -1 || b.x == -1 || c.x == -1)
 		return;
 	Triangle tri;
-	tri.a = a;
-	tri.b = b;
-	tri.c = c;
+	tri.a.position = a;
+	tri.b.position = b;
+	tri.c.position = c;
 	tri.computeNormal();
 
-	//std::unique_lock<std::mutex> lock(this->trianglesMutex);
+	std::unique_lock<std::mutex> lock(this->trianglesMutex);
 
-	this->triangles.push_back(tri);
+	this->getTriangles().push_back(tri);
 
-	//lock.unlock();
+	lock.unlock();
 }
-
-std::vector<Triangle>& MarchingCubes::getTriangles()
-{
-	return this->triangles;
-}
-
 
 float MarchingCubes::CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index)
 {
@@ -207,7 +198,7 @@ float MarchingCubes::CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 
 	return result;
 }
 
-void MarchingCubes::GenerateMesh(E57* e57)
+void MarchingCubes::GenerateMesh()
 {
 	/*for (int i1 = 0; i1 < this->voxelsInDimX; ++i1)
 	{
@@ -217,7 +208,7 @@ void MarchingCubes::GenerateMesh(E57* e57)
 			{
 				if (this->grid[i1][i2][i3])
 				{
-					GenerateCubeMesh(i1, i2, i3, e57);
+					GenerateCubeMesh(i1, i2, i3);
 				}
 			}
 		}
@@ -247,7 +238,7 @@ void MarchingCubes::GenerateMesh(E57* e57)
 				int endZ = (tZ == numThreads - 1) ? voxelsInDimZ : startZ + chunkSizeZ;
 
 				// Launch a thread for each chunk
-				threads.push_back(std::thread(&MarchingCubes::GenerateMeshInRange, this, startX, endX, startY, endY, startZ, endZ, e57));
+				threads.push_back(std::thread(&MarchingCubes::GenerateMeshInRange, this, startX, endX, startY, endY, startZ, endZ));
 			}
 		}
 	}
@@ -259,7 +250,7 @@ void MarchingCubes::GenerateMesh(E57* e57)
 	}
 }
 int allEdges = 0;
-void MarchingCubes::GenerateCubeMesh(int x, int y, int z, E57* e57)
+void MarchingCubes::GenerateCubeMesh(int x, int y, int z)
 {
 	if (x + 1 >= this->voxelsInDimX || y + 1 >= this->voxelsInDimY || z + 1 >= this->voxelsInDimZ) 
 		return;
@@ -285,7 +276,7 @@ void MarchingCubes::GenerateCubeMesh(int x, int y, int z, E57* e57)
 	glm::vec3 vertices[12];
 	for (int i = 0; i < 12; i++) {
 		if (edges & (1 << i)) {
-			vertices[i] = InterpolateEdge(x, y, z, i, e57); // Interpolate edge i
+			vertices[i] = InterpolateEdge(x, y, z, i); // Interpolate edge i
 			++intersected;
 		}
 	}
@@ -307,29 +298,24 @@ void MarchingCubes::GenerateCubeMesh(int x, int y, int z, E57* e57)
 	}
 }
 
-void MarchingCubes::SetGridInRange(std::vector<float>& points, E57* e57, int startIdx, int endIdx)
+void MarchingCubes::SetGridInRange(int startIdx, int endIdx)
 {
-	float minX, minY, minZ;
-	if (e57)
-	{
-		minX = e57->getInfo().minX;
-		minY = e57->getInfo().minY;
-		minZ = e57->getInfo().minZ;
-	}
-	else
-	{
-		minX = minY = minZ = -0.5;
-	}
+	minX = e57->getInfo().minX;
+	minY = e57->getInfo().minY;
+	minZ = e57->getInfo().minZ;
 
-	for (int i = startIdx; i < endIdx; i = i + 3)
+	std::vector<E57Point>& points = e57->getPoints();
+
+	for (int i = startIdx; i < endIdx; i++)
 	{
-		float x = points[i], y = points[i + 1], z = points[i + 2];
+		float x = points[i].position.x, y = points[i].position.y, z = points[i].position.z;
 
 		int indexX = (x - minX) / voxelSize;
 		int indexY = (y - minY) / voxelSize;
 		int indexZ = (z - minZ) / voxelSize;
 
 		float density = CalculateDensity(glm::vec3(x, y, z), glm::vec3(minX, minY, minZ), glm::vec3(indexX, indexY, indexZ));
+
 		grid[indexX][indexY][indexZ] = std::max(grid[indexX][indexY][indexZ], density);
 
 		for (int j1 = -margin; j1 <= margin; ++j1)
@@ -355,7 +341,7 @@ void MarchingCubes::SetGridInRange(std::vector<float>& points, E57* e57, int sta
 	}
 }
 
-void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int endY, int startZ, int endZ, E57* e57)
+void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int endY, int startZ, int endZ)
 {
 	for (int i1 = startX; i1 < endX; ++i1)
 	{
@@ -365,11 +351,23 @@ void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int en
 			{
 				if (this->grid[i1][i2][i3])
 				{
-					GenerateCubeMesh(i1, i2, i3, e57);
+					GenerateCubeMesh(i1, i2, i3);
 				}
 			}
 		}
 	}
+}
+
+void MarchingCubes::Run()
+{
+	this->getTriangles().clear();
+	GenerateMesh();
+}
+
+void MarchingCubes::SetUp()
+{
+	InitGrid();
+	SetGrid();
 }
 
 MarchingCubes::~MarchingCubes()

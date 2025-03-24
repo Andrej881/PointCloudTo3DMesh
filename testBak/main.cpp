@@ -3,8 +3,34 @@
 #include "Shader.h"
 #include "Camera.h"
 
-#include "MarchingCubes.h"
-#include "Cubes.h"
+#include "AlgorithmControl.h"
+
+void FindDistancesBetweenPoints(std::vector<float>& points)
+{
+    float min = FLT_MAX, max = FLT_MIN, average = 0;
+    int help = 0;
+    for (int i = 0; i < points.size(); i += 3)
+    {
+		for (int j = i + 3; j < points.size(); j += 3)
+		{
+			float distance = std::sqrt(
+				(points[i] - points[j]) * (points[i] - points[j]) +
+				(points[i + 1] - points[j + 1]) * (points[i + 1] - points[j + 1]) +
+				(points[i + 2] - points[j + 2]) * (points[i + 2] - points[j + 2])
+			);
+			if (distance < min)
+				min = distance;
+			if (distance > max)
+				max = distance;
+			average += distance;
+            help++;
+		}
+
+    }
+	average /= help;
+	printf("Min: %f, Max: %f, Average: %f\n", min, max, average);
+};
+
 
 e57::ustring path = "D:\\Bakalarka\\e57Files\\bunnyFloat.e57";
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -19,10 +45,20 @@ bool firstMouse = true;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 Window win(1080, 720);
 int main() {
-    E57 e57(path);
-    myGuiImplementation gui(win.getWindow(), &e57);
 
-    MarchingCubes cubes(0.001,1,e57);
+    E57 e57(path);
+	
+    /*clock_t begin = clock();
+	e57.CalculateNormals();
+	clock_t end = clock();
+	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	printf("Time to calculate normals: %f\n", elapsed_secs);*/
+	//FindDistancesBetweenPoints(e57.getPoints());
+
+	AlgorithmControl algorithms(&e57, BALL_PIVOTING);
+
+    myGuiImplementation gui(win.getWindow(), &e57);    
+
     //Cubes cubes(0.01, 0, e57);
     //printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
     if (e57.getCount() <= 0)
@@ -31,7 +67,7 @@ int main() {
     }
 
     win.setPointCount(e57.getCount());
-    win.LoadMeshToGPUFromCubes(cubes);
+	win.LoadMeshToGPU(algorithms);
     win.setCallBacks(mouse_callback, scroll_callback);
     Shader shader;
     GLuint shaderProgram = shader.createShaderProgram();
@@ -43,7 +79,7 @@ int main() {
 
         shader.use();
         win.ProcessInput(deltaTime, camera);
-        win.Render(shader, camera, gui);
+        win.Render(shader, camera, gui, algorithms);
     }
     glfwTerminate();
 

@@ -1,8 +1,17 @@
 #include "E57.h"
 
+void E57::SetUpTree()
+{
+    tree.Clear();
+    for (E57Point& point : this->points)
+    {
+        tree.Insert(&point);
+    }
+}
+
 E57::E57(e57::ustring path)
 {
-    points = std::vector<float>();
+    points = std::vector<E57Point>();
     count = 0;
     if (ReadFile(path) != 0)
     {
@@ -45,7 +54,7 @@ int E57::ReadFile(e57::ustring & path)
         hasNormals = data3DHeader.pointFields.normalXField && data3DHeader.pointFields.normalYField && data3DHeader.pointFields.normalZField;
 
         // Allocate memory for points
-        points = std::vector<float>(); // X, Y, Z interleaved
+        points = std::vector<E57Point>(); // X, Y, Z interleaved
         std::vector<float> XP(pointCount), YP(pointCount), ZP(pointCount);
         std::vector<float> NorX, NorY, NorZ;
         // Prepare buffers for the reader
@@ -70,15 +79,11 @@ int E57::ReadFile(e57::ustring & path)
 
 
         for (int i = 0; i < count; i++) {
-            points.push_back(XP[i]);
-            points.push_back(YP[i]);
-            points.push_back(ZP[i]);
+            E57Point point = { glm::vec3(XP[i], YP[i], ZP[i])};
+            point.hasNormal = hasNormals;
             if (hasNormals)
-            {
-                normals.push_back(NorX[i]);
-                normals.push_back(NorY[i]);
-                normals.push_back(NorZ[i]);
-            }
+                point.normal = glm::vec3(NorX[i], NorY[i], NorZ[i]);   
+			points.push_back(point);
         }
 
 
@@ -88,13 +93,13 @@ int E57::ReadFile(e57::ustring & path)
         float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
         float maxX = FLT_MIN, maxY = FLT_MIN, maxZ = FLT_MIN;
 
-        for (int i = 0; i < count; i++) {
-            minX = std::min(minX, points[i * 3]);
-            minY = std::min(minY, points[i * 3 + 1]);
-            minZ = std::min(minZ, points[i * 3 + 2]);
-            maxX = std::max(maxX, points[i * 3]);
-            maxY = std::max(maxY, points[i * 3 + 1]);
-            maxZ = std::max(maxZ, points[i * 3 + 2]);
+        for (E57Point& point : points) {
+            minX = std::min(minX, point.position.x);
+            minY = std::min(minY, point.position.y);
+            minZ = std::min(minZ, point.position.z);
+            maxX = std::max(maxX, point.position.x);
+            maxY = std::max(maxY, point.position.y);
+            maxZ = std::max(maxZ, point.position.z);
         }
 
         float centerX = (minX + maxX) / 2.0f;
@@ -110,10 +115,10 @@ int E57::ReadFile(e57::ustring & path)
         info.maxZ = (maxZ - centerZ) / maxDim;
         
         printf("minX[%f], maxX[%f], minY[%f], maxY[%f], minZ[%f], maxZ[%f]\n", info.minX, info.maxX, info.minY, info.maxY, info.minZ, info.maxZ);
-        for (int i = 0; i < count; i++) {
-            points[i * 3] = (points[i * 3] - centerX) / maxDim;
-            points[i * 3 + 1] = (points[i * 3 + 1] - centerY) / maxDim;
-            points[i * 3 + 2] = (points[i * 3 + 2] - centerZ) / maxDim;
+        for (E57Point& point : points) {
+            point.position.x = (point.position.x - centerX) / maxDim;
+            point.position.y = (point.position.y - centerY) / maxDim;
+            point.position.z = (point.position.z - centerZ) / maxDim;
         }
 
     }
@@ -127,9 +132,98 @@ int E57::ReadFile(e57::ustring & path)
     return 0;
 }
 
-std::vector<float>& E57::getPoints()
+std::vector<E57Point>& E57::getPoints()
 {
     return this->points;
+}
+
+KDTree& E57::getTree()
+{
+    return this->tree;
+}
+
+void E57::CalculateNormals()
+{
+    float radius = 0.2f;
+
+    if (hasNormals)
+    {
+        return;
+    }
+
+	SetUpTree();
+    KDTreeNode* seedPoint = this->tree.GetRoot();
+    if (!seedPoint) {
+        throw std::runtime_error("Point cloud is empty!");
+    }
+
+    std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);  
+
+	hasNormals = true;
+
+    for (int i = 0; i < count; i++) {
+        KDTreeNode* seedPoint = tree.FindNode(&this->points[i]);
+        if (seedPoint == nullptr)
+            continue;
+
+        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);
+        if (neighbors.size() < 3)
+            continue;
+
+        glm::vec3 centroid(0.0f);
+        int neighborCount = 0;
+
+        for (auto neighbor : neighbors) {
+            centroid += neighbor->point->position;
+        }
+        centroid /= static_cast<float>(neighbors.size());
+
+         glm::mat3 covariance = glm::mat3(0.0f);
+        for (auto neighbor : neighbors) {
+            glm::vec3 diff = neighbor->point->position - centroid;
+            covariance += glm::outerProduct(diff, diff);
+        }
+        covariance /= static_cast<float>(neighbors.size());
+       
+        Eigen::Matrix3f eigenCovariance;
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 3; col++) {
+                eigenCovariance(row, col) = covariance[col][row]; // glm is column-major
+            }
+        }
+
+        // Compute eigenvalues & eigenvectors
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(eigenCovariance);
+        Eigen::Vector3f normalEigen = solver.eigenvectors().col(0); // Smallest eigenvector
+
+        glm::vec3 normal(normalEigen.x(), normalEigen.y(), normalEigen.z());
+        normal = -glm::normalize(normal);        
+
+        glm::vec3 avgNeighborNormal(0.0f);
+        int validNormals = 0;
+
+        for (auto neighbor : neighbors) {
+            if (neighbor->point->hasNormal) {
+                avgNeighborNormal += neighbor->point->normal;
+                validNormals++;
+            }
+        }
+
+        if (validNormals > 0) {
+            avgNeighborNormal = glm::normalize(avgNeighborNormal);
+            if (glm::dot(normal, avgNeighborNormal) < 0) {
+                normal = -normal;  
+            }
+        }
+
+        points[i].normal = normal;
+        points[i].hasNormal = true;
+    }
+}
+
+bool E57::GetHasNormals()
+{
+    return this->hasNormals;
 }
 
 int E57::getCount()

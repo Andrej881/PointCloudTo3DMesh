@@ -1,60 +1,54 @@
 #include "Cubes.h"
 
-void Cubes::InitGrid(E57* e57)
+void Cubes::InitGrid()
 {
-	this->cubes.clear();
 	this->grid.clear();
-	if (e57)
-	{
-		NormilizedPointsInfo& info = e57->getInfo();
-		this->voxelsInDimX = (int)((info.maxX - info.minX) / voxelSize) + 1;
-		this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 1;
-		this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 1;
-	}
-	else
-	{
-		this->voxelsInDimX = this->voxelsInDimY = this->voxelsInDimZ = (int)(1.0f / voxelSize) + 1;
-	}
+
+	NormilizedPointsInfo& info = e57->getInfo();
+	this->voxelsInDimX = (int)((info.maxX - info.minX) / voxelSize) + 1;
+	this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 1;
+	this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 1;
+
 	this->grid = std::vector<std::vector<std::vector<bool>>>(this->voxelsInDimX, std::vector<std::vector<bool>>(this->voxelsInDimY, std::vector<bool>(this->voxelsInDimZ, false)));
 }
 
-Cubes::Cubes(float voxelSize, int margin, E57& e57)
+Cubes::Cubes(E57* e57) : ReconstructionAlgorithm(e57)
+{
+	this->margin = 1;
+	this->voxelSize = 0.01f;
+}
+
+Cubes::Cubes(float voxelSize, int margin, E57* e57) : ReconstructionAlgorithm(e57)
 {
 	this->margin = margin;
 	this->voxelSize = voxelSize;
-
-	InitGrid(&e57);
-	SetGrid(e57.getPoints(), &e57);
 }
 
-Cubes::Cubes(float voxelSize, int margin,  std::vector<float>& points)
+void Cubes::SetVoxelSize(float voxelSize)
+{
+	this->voxelSize = voxelSize;
+}
+
+void Cubes::SetMargin(int margin)
 {
 	this->margin = margin;
-	this->voxelSize = voxelSize;
-
-	InitGrid(nullptr);
-	SetGrid(points, nullptr);
 }
 
-void Cubes::SetGrid(std::vector<float>& points, E57* e57)
+void Cubes::SetGrid()
 {
 	//this->grid[0][0][0] = true;
 	//this->grid[this->voxelsInDim-1][this->voxelsInDim-1][this->voxelsInDim-1] = true;
 	// -0.5, 0.5
-	float minX, minY, minZ;
-	if (e57)
-	{
-		minX = e57->getInfo().minX;
-		minY = e57->getInfo().minY;
-		minZ = e57->getInfo().minZ;
-	}
-	else
-	{
-		minX = minY = minZ = -0.5;
-	}
-	for (int i = 0; i < points.size(); i = i + 3) {
+
+	minX = e57->getInfo().minX;
+	minY = e57->getInfo().minY;
+	minZ = e57->getInfo().minZ;
+
+	std::vector<E57Point>& points = e57->getPoints();
+
+	for (int i = 0; i < points.size(); i++) {
 		//printf("[%d] / [%d]\n", i, points.size());
-		float x = points[i], y = points[i+1], z = points[i+2];
+		float x = points[i].position.x, y = points[i].position.y, z = points[i].position.z;
 		
 		int indexX = (x - minX) / voxelSize, indexY = (y - minY) / voxelSize, indexZ = (z - minZ) / voxelSize;
 
@@ -88,10 +82,9 @@ void Cubes::SetGrid(std::vector<float>& points, E57* e57)
 			}
 		}
 	}
-	GenerateMesh(e57);
 }
 
-void Cubes::GenerateMesh(E57* e57)
+void Cubes::GenerateMesh()
 {	
 	for (int i1 = 0; i1 < this->voxelsInDimX; i1++)
 	{
@@ -101,42 +94,31 @@ void Cubes::GenerateMesh(E57* e57)
 			{
 				if (this->grid[i1][i2][i3]) 
 				{
-					CreateCube(i1, i2, i3, e57);					
+					CreateCube(i1, i2, i3);					
 				}
 			}
 		}
 	}
 }
 
-void Cubes::CreateCube(int x, int y, int z, E57 * e57)
+void Cubes::CreateCube(int x, int y, int z)
 {
 	Cube cube;
-	float minx, miny, minz;
-	if (e57)
-	{
-		minx = e57->getInfo().minX;
-		miny = e57->getInfo().minY;
-		minz = e57->getInfo().minZ;
-	}
-	else
-	{
-		minx = miny = minz = -0.5f;
-	}
 
-	cube.verteces[0] = { x * this->voxelSize, y * this->voxelSize, z * this->voxelSize };	
-	cube.verteces[1] = { x * this->voxelSize + this->voxelSize, y * this->voxelSize, z * this->voxelSize };
-	cube.verteces[2] = { x * this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize };
-	cube.verteces[3] = { x * this->voxelSize, y * this->voxelSize, z * this->voxelSize + this->voxelSize };
-	cube.verteces[4] = { x * this->voxelSize + this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize };
-	cube.verteces[5] = { x * this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize + this->voxelSize };
-	cube.verteces[6] = { x * this->voxelSize + this->voxelSize, y * this->voxelSize, z * this->voxelSize + this->voxelSize };
-	cube.verteces[7] = { x * this->voxelSize + this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize + this->voxelSize };
+	cube.verteces[0] = { glm::vec3(x * this->voxelSize, y * this->voxelSize, z * this->voxelSize) };	
+	cube.verteces[1] = { glm::vec3(x * this->voxelSize + this->voxelSize, y * this->voxelSize, z * this->voxelSize) };
+	cube.verteces[2] = { glm::vec3(x * this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize) };
+	cube.verteces[3] = { glm::vec3(x * this->voxelSize, y * this->voxelSize, z * this->voxelSize + this->voxelSize) };
+	cube.verteces[4] = { glm::vec3(x * this->voxelSize + this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize) };
+	cube.verteces[5] = { glm::vec3(x * this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize + this->voxelSize) };
+	cube.verteces[6] = { glm::vec3(x * this->voxelSize + this->voxelSize, y * this->voxelSize, z * this->voxelSize + this->voxelSize) };
+	cube.verteces[7] = { glm::vec3(x * this->voxelSize + this->voxelSize, y * this->voxelSize + this->voxelSize, z * this->voxelSize + this->voxelSize) };
 	
-	for (glm::vec3& ver : cube.verteces)
+	for (E57Point& ver : cube.verteces)
 	{
-		ver.x += minx;
-		ver.y += miny;
-		ver.z += minz;
+		ver.position.x += minX;
+		ver.position.y += minY;
+		ver.position.z += minZ;
 	}
 
 	//front (z-)
@@ -149,7 +131,6 @@ void Cubes::CreateCube(int x, int y, int z, E57 * e57)
 		cube.sides[0].triangles[0].computeNormal();
 		cube.sides[0].triangles[1].normal = cube.sides[0].triangles[0].normal;
 
-		this->numOfTriangels += 2;
 	}
 
 	//leftSide (x-)
@@ -162,7 +143,6 @@ void Cubes::CreateCube(int x, int y, int z, E57 * e57)
 		cube.sides[1].triangles[0].computeNormal();
 		cube.sides[1].triangles[1].normal = cube.sides[1].triangles[0].normal;
 
-		this->numOfTriangels += 2;
 	}
 
 	//rightSide (x+)
@@ -175,7 +155,6 @@ void Cubes::CreateCube(int x, int y, int z, E57 * e57)
 		cube.sides[2].triangles[0].computeNormal();
 		cube.sides[2].triangles[1].normal = cube.sides[2].triangles[0].normal;
 
-		this->numOfTriangels += 2;
 	}
 
 	//back (z+)
@@ -188,7 +167,6 @@ void Cubes::CreateCube(int x, int y, int z, E57 * e57)
 		cube.sides[3].triangles[0].computeNormal();
 		cube.sides[3].triangles[1].normal = cube.sides[3].triangles[0].normal;
 
-		this->numOfTriangels += 2;
 	}
 
 	//up (y+)
@@ -200,8 +178,6 @@ void Cubes::CreateCube(int x, int y, int z, E57 * e57)
 
 		cube.sides[4].triangles[0].computeNormal();
 		cube.sides[4].triangles[1].normal = cube.sides[4].triangles[0].normal;
-
-		this->numOfTriangels += 2;
 	}
 
 	//down (y-)
@@ -213,16 +189,27 @@ void Cubes::CreateCube(int x, int y, int z, E57 * e57)
 
 		cube.sides[5].triangles[0].computeNormal();
 		cube.sides[5].triangles[1].normal = cube.sides[5].triangles[0].normal;
-
-		this->numOfTriangels += 2;
 	}
-
-	this->cubes.push_back(cube);
+	
+	for (Side side : cube.sides)
+	{
+		for (Triangle triangle : side.triangles)
+		{
+			this->getTriangles().push_back(triangle);
+		}
+	}
 }
 
-std::vector<Cube>& Cubes::getCubes()
+void Cubes::Run()
 {
-	return this->cubes;
+	this->getTriangles().clear();
+	GenerateMesh();
+}
+
+void Cubes::SetUp()
+{
+	InitGrid();
+	SetGrid();
 }
 
 Cubes::~Cubes()

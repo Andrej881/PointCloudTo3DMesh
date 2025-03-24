@@ -34,6 +34,18 @@
     <Filter Include="Source Files\meshAlgorithms">
       <UniqueIdentifier>{ff388750-3154-42c5-b6a5-f6adce9af2e0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\meshAlgorithms\MarchingCubeFolder">
+      <UniqueIdentifier>{427ba5f4-4413-4c27-87d0-ab64597a8c66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\meshAlgorithms\MarchingCubeFolder">
+      <UniqueIdentifier>{8f305fb4-66a3-4e37-991c-1b03133e4112}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\meshAlgorithms\BPA">
+      <UniqueIdentifier>{ae46e791-3c55-49da-9463-fb955d31c8c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\meshAlgorithms\BPA">
+      <UniqueIdentifier>{c3f950c5-4731-4060-bb5e-e83c8c0eca3a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -60,14 +72,26 @@
     <ClCompile Include="nfd_win.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
+    <ClCompile Include="MarchingCubeLookupTable.h">
+      <Filter>Header Files\meshAlgorithms\MarchingCubeFolder</Filter>
+    </ClCompile>
     <ClCompile Include="Cubes.cpp">
-      <Filter>Source Files\meshAlgorithms</Filter>
+      <Filter>Source Files\meshAlgorithms\MarchingCubeFolder</Filter>
     </ClCompile>
     <ClCompile Include="MarchingCubes.cpp">
+      <Filter>Source Files\meshAlgorithms\MarchingCubeFolder</Filter>
+    </ClCompile>
+    <ClCompile Include="KDTree.cpp">
+      <Filter>Source Files\meshAlgorithms\BPA</Filter>
+    </ClCompile>
+    <ClCompile Include="BallPivoting.cpp">
+      <Filter>Source Files\meshAlgorithms\BPA</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgorithmControl.cpp">
       <Filter>Source Files\meshAlgorithms</Filter>
     </ClCompile>
-    <ClCompile Include="MarchingCubeLookupTable.h">
-      <Filter>Header Files\meshAlgorithms</Filter>
+    <ClCompile Include="ReconstructionAlgorithm.cpp">
+      <Filter>Source Files\meshAlgorithms</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -111,10 +135,28 @@
       <Filter>Header Files\util</Filter>
     </ClInclude>
     <ClInclude Include="Cubes.h">
-      <Filter>Header Files\meshAlgorithms</Filter>
+      <Filter>Header Files\meshAlgorithms\MarchingCubeFolder</Filter>
     </ClInclude>
     <ClInclude Include="MarchingCubes.h">
+      <Filter>Header Files\meshAlgorithms\MarchingCubeFolder</Filter>
+    </ClInclude>
+    <ClInclude Include="KDTree.h">
+      <Filter>Header Files\meshAlgorithms\BPA</Filter>
+    </ClInclude>
+    <ClInclude Include="BallPivoting.h">
+      <Filter>Header Files\meshAlgorithms\BPA</Filter>
+    </ClInclude>
+    <ClInclude Include="Triangle.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgorithmControl.h">
       <Filter>Header Files\meshAlgorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="ReconstructionAlgorithm.h">
+      <Filter>Header Files\meshAlgorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="E57Point.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
