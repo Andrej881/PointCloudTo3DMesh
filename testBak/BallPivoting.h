@@ -34,15 +34,20 @@ struct Triangle2 {
 class BallPivoting : public ReconstructionAlgorithm
 {
 private:
-	float radius;
+	// Track processed points
+	float radius,initRadius, tolerance;
 	KDTree* tree;
 
-	Triangle2 FindInitialTriangle();
+	Triangle2 FindInitialTriangle(std::unordered_set<KDTreeNode*>& visited);
+	bool IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
 	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
+	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
+
+	glm::vec3 ComputeBallCenter(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, float& bRadius);
 
 public:
 	BallPivoting(E57* e57);
-	BallPivoting(E57* e57, float radius);
+	BallPivoting(E57* e57, float radius, float tolerance);
 
 	void SetRadius(float radius);
 

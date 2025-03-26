@@ -1,9 +1,9 @@
 #include "AlgorithmControl.h"
 
-AlgorithmControl::AlgorithmControl(E57* e57):e57(e57), cubes(e57), marchinCubes(e57), bp(e57), activeAlgorithm(nullptr)
+AlgorithmControl::AlgorithmControl(E57* e):e57(e), cubes(e), marchinCubes(e), bp(e), activeAlgorithm(nullptr)
 {}
 
-AlgorithmControl::AlgorithmControl(E57 * e57, algorithms starting) :e57(e57), cubes(e57), marchinCubes(e57), bp(e57)
+AlgorithmControl::AlgorithmControl(E57 * e, algorithms starting) :e57(e), cubes(e), marchinCubes(e), bp(e)
 {
 	this->active = starting;
 	switch (starting)

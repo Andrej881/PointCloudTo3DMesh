@@ -1,10 +1,22 @@
 #include "KDTree.h"
 
+void KDTree::Insert(E57Point* point)
+{
+	KDTreeNode* node = new KDTreeNode;
+	node->left = node->right = node->parent = nullptr;
+	node->point = point;
+
+	InsertNode(root, node, 0);
+}
+
 void KDTree::InsertNode(KDTreeNode*& node, KDTreeNode* newNode, int depth)
 {
 	KDTreeNode** current = &node;
+	KDTreeNode* parent = nullptr;
 	while (*current != nullptr)
 	{
+		parent = *current;
+
 		unsigned cd = depth % k;
 		float currentHelp = cd == 0 ? (*current)->point->position.x : cd == 1 ? (*current)->point->position.y : (*current)->point->position.z;
 		float newNodeHelp = cd == 0 ? newNode->point->position.x : cd == 1 ? newNode->point->position.y : newNode->point->position.z;
@@ -18,8 +30,9 @@ void KDTree::InsertNode(KDTreeNode*& node, KDTreeNode* newNode, int depth)
 		depth++;
 	}
 	*current = newNode;
-	newNode->parent = node;
-	
+	newNode->parent = parent;
+	if (depth > maxDepth)
+		maxDepth = depth;
 }
 
 std::vector<KDTreeNode*> KDTree::GetNeighborsWithinRadius(KDTreeNode* queryNode, float radius) {
@@ -63,10 +76,8 @@ std::vector<KDTreeNode*> KDTree::GetNeighborsWithinRadius(KDTreeNode* queryNode,
 	return neighbors;
 }
 
-std::vector<KDTreeNode*> KDTree::GetNeighborsOnRadius(KDTreeNode* queryNode, float radius)
+std::vector<KDTreeNode*> KDTree::GetNeighborsOnRadius(glm::vec3 ballCenter, float radius, float tolerance)
 {
-	float tolerance = 0.005f;
-
 	std::vector<KDTreeNode*> neighbors;
 	float radiusSq = radius * radius;
 
@@ -76,7 +87,7 @@ std::vector<KDTreeNode*> KDTree::GetNeighborsOnRadius(KDTreeNode* queryNode, flo
 		// Compute squared Euclidean distance
 		float distSq = 0.0f;
 		for (int i = 0; i < k; ++i) {
-			float diff = node->point->position[i] - queryNode->point->position[i];
+			float diff = node->point->position[i] - ballCenter[i];
 			distSq += diff * diff;
 		}
 
@@ -85,18 +96,18 @@ std::vector<KDTreeNode*> KDTree::GetNeighborsOnRadius(KDTreeNode* queryNode, flo
 		}
 
 		int cd = depth % k;  // Splitting dimension
-		float diff = queryNode->point->position[cd] - node->point->position[cd];
+		float diff = ballCenter[cd] - node->point->position[cd];
 
 		// Recursively search left or right subtree based on distance
 		if (diff < 0) {
 			searchFunc(node->left, depth + 1);
-			if (diff * diff <= radiusSq) {
+			if (diff * diff <= radiusSq + tolerance && diff * diff > radiusSq - tolerance) {
 				searchFunc(node->right, depth + 1);
 			}
 		}
 		else {
 			searchFunc(node->right, depth + 1);
-			if (diff * diff <= radiusSq) {
+			if (diff * diff <= radiusSq + tolerance && diff * diff > radiusSq - tolerance) {
 				searchFunc(node->left, depth + 1);
 			}
 		}
@@ -117,18 +128,31 @@ void KDTree::DeleteNode(KDTreeNode*& node)
 	node = nullptr;
 }
 
-void KDTree::Insert(E57Point* point)
-{
-	KDTreeNode* node = new KDTreeNode;
-	node->left = node->right = node->parent = nullptr;
-	node->point = point;
-
-	InsertNode(root, node, 0);
-}
-
 KDTreeNode* KDTree::GetRoot()
 {
 	return root;
+}
+
+KDTreeNode* KDTree::GetRandomNode()
+{
+	int depth = rand() % (this->maxDepth + 1);
+	KDTreeNode* node = root;
+	for (int i = 0; i < depth; ++i)
+	{
+		if (rand() % 2 > 0)
+		{
+			if (node->left == nullptr)
+				break;
+			node = node->left;
+		}
+		else
+		{
+			if (node->right == nullptr)
+				break;
+			node = node->right;
+		}
+	}
+	return node;
 }
 
 void KDTree::Clear()

@@ -21,8 +21,8 @@ private:
 
 	ReconstructionAlgorithm* activeAlgorithm;
 public:
-	AlgorithmControl(E57* e57);
-	AlgorithmControl(E57* e57, algorithms starting);
+	AlgorithmControl(E57* e);
+	AlgorithmControl(E57* e, algorithms starting);
 
 	void Run();
 	void ChangeAlgorithm(algorithms a);

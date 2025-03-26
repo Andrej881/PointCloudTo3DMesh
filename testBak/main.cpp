@@ -5,27 +5,25 @@
 
 #include "AlgorithmControl.h"
 
-void FindDistancesBetweenPoints(std::vector<float>& points)
+void FindDistancesBetweenPoints(std::vector<E57Point>& points)
 {
     float min = FLT_MAX, max = FLT_MIN, average = 0;
     int help = 0;
-    for (int i = 0; i < points.size(); i += 3)
+    for (E57Point& point1 : points)
     {
-		for (int j = i + 3; j < points.size(); j += 3)
-		{
-			float distance = std::sqrt(
-				(points[i] - points[j]) * (points[i] - points[j]) +
-				(points[i + 1] - points[j + 1]) * (points[i + 1] - points[j + 1]) +
-				(points[i + 2] - points[j + 2]) * (points[i + 2] - points[j + 2])
-			);
-			if (distance < min)
-				min = distance;
-			if (distance > max)
-				max = distance;
-			average += distance;
+        for (E57Point& point2 : points)
+        {
+            if (point1 == point2)
+                continue;
+            float distance = glm::distance(point1.position, point2.position);
+            
+            if (distance < min)
+                min = distance;
+            if (distance > max)
+                max = distance;
+            average += distance;
             help++;
-		}
-
+        }
     }
 	average /= help;
 	printf("Min: %f, Max: %f, Average: %f\n", min, max, average);
@@ -45,7 +43,7 @@ bool firstMouse = true;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 Window win(1080, 720);
 int main() {
-
+    srand(time(NULL));
     E57 e57(path);
 	
     /*clock_t begin = clock();

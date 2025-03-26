@@ -10,13 +10,13 @@ void E57::SetUpTree()
 }
 
 E57::E57(e57::ustring path)
-{
+{   
     points = std::vector<E57Point>();
     count = 0;
     if (ReadFile(path) != 0)
     {
         std::cerr << "Could not read file" << std::endl;
-    }    
+    }
 }
 
 int E57::ReadFile(e57::ustring & path)
