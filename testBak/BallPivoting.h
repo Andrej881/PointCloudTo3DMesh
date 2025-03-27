@@ -35,21 +35,22 @@ class BallPivoting : public ReconstructionAlgorithm
 {
 private:
 	// Track processed points
-	float radius,initRadius, tolerance;
+	float radius,initRadius,lowerRadius, tolerance;
 	KDTree* tree;
 
-	Triangle2 FindInitialTriangle(std::unordered_set<KDTreeNode*>& visited);
+	Triangle2 FindInitialTriangle(std::unordered_set<KDTreeNode*>& visited, KDTree& visitedTree);
 	bool IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
-	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
-	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
+	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited);
+	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited);
 
 	glm::vec3 ComputeBallCenter(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, float& bRadius);
 
 public:
 	BallPivoting(E57* e57);
-	BallPivoting(E57* e57, float radius, float tolerance);
+	BallPivoting(E57* e57, float radius, float lowerRadius, float tolerance);
 
 	void SetRadius(float radius);
+	void SetLowerRadius(float radius);
 
 	void Run() override;
 	void SetUp() override;
