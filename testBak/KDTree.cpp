@@ -44,35 +44,30 @@ void KDTree::InsertNode(KDTreeNode*& node, KDTreeNode* newNode, int depth)
 std::vector<KDTreeNode*> KDTree::GetNeighborsWithinRadius(KDTreeNode* queryNode, float radius) {
 
 	std::vector<KDTreeNode*> neighbors;
-	float radiusSq = radius * radius;
 
 	std::function<void(KDTreeNode*, int)> searchFunc = [&](KDTreeNode* node, int depth) {
 		if (node == nullptr) return;
 
-		// Compute squared Euclidean distance
-		float distSq = 0.0f;
-		for (int i = 0; i < k; ++i) {
-			float diff = node->point->position[i] - queryNode->point->position[i];
-			distSq += diff * diff;
-		}
+		float dist = glm::length(node->point->position - queryNode->point->position);
 
-		if (distSq <= radiusSq) {
+		if (dist <= radius) {
 			neighbors.push_back(node);
 		}
 
 		int cd = depth % k;  // Splitting dimension
 		float diff = queryNode->point->position[cd] - node->point->position[cd];
+		float diff2 = glm::length(queryNode->point->position[cd] - node->point->position[cd]);
 
 		// Recursively search left or right subtree based on distance
 		if (diff < 0) {
 			searchFunc(node->left, depth + 1);
-			if (diff * diff <= radiusSq) {
+			if (diff2 <= radius) {
 				searchFunc(node->right, depth + 1);
 			}
 		}
 		else {
 			searchFunc(node->right, depth + 1);
-			if (diff * diff <= radiusSq) {
+			if (diff2 <= radius) {
 				searchFunc(node->left, depth + 1);
 			}
 		}
@@ -85,35 +80,33 @@ std::vector<KDTreeNode*> KDTree::GetNeighborsWithinRadius(KDTreeNode* queryNode,
 std::vector<KDTreeNode*> KDTree::GetNeighborsOnRadius(glm::vec3 ballCenter, float radius, float tolerance)
 {
 	std::vector<KDTreeNode*> neighbors;
-	float radiusSq = radius * radius;
 
 	std::function<void(KDTreeNode*, int)> searchFunc = [&](KDTreeNode* node, int depth) {
 		if (node == nullptr) return;
 
-		// Compute squared Euclidean distance
-		float distSq = 0.0f;
-		for (int i = 0; i < k; ++i) {
-			float diff = node->point->position[i] - ballCenter[i];
-			distSq += diff * diff;
-		}
+		
+		float dist = glm::length(node->point->position - ballCenter);
 
-		if (distSq <= radiusSq + tolerance && distSq > radiusSq - tolerance) {
+		float minDist = (radius - tolerance);
+		float maxDist = (radius + tolerance);
+
+		if (dist >= minDist && dist <= maxDist) {
 			neighbors.push_back(node);
 		}
 
 		int cd = depth % k;  // Splitting dimension
 		float diff = ballCenter[cd] - node->point->position[cd];
-
+		float diff2 = glm::length(ballCenter[cd] - node->point->position[cd]);
 		// Recursively search left or right subtree based on distance
 		if (diff < 0) {
 			searchFunc(node->left, depth + 1);
-			if (diff * diff <= radiusSq + tolerance && diff * diff > radiusSq - tolerance) {
+			if (diff2 <= maxDist) {
 				searchFunc(node->right, depth + 1);
 			}
 		}
 		else {
 			searchFunc(node->right, depth + 1);
-			if (diff * diff <= radiusSq + tolerance && diff * diff > radiusSq - tolerance) {
+			if (diff2 <= maxDist) {
 				searchFunc(node->left, depth + 1);
 			}
 		}
@@ -125,19 +118,12 @@ std::vector<KDTreeNode*> KDTree::GetNeighborsOnRadius(glm::vec3 ballCenter, floa
 
 bool KDTree::ContainsPointsWithinRadiusBesidesPoints(KDTreeNode* queryNode, std::vector<E57Point*>& points, float radius)
 {
-	float radiusSq = radius * radius;
-
 	std::function<bool(KDTreeNode*, int)> searchFunc = [&](KDTreeNode * node, int depth) {
 		if (node == nullptr) return false;
 
-		// Compute squared Euclidean distance
-		float distSq = 0.0f;
-		for (int i = 0; i < k; ++i) {
-			float diff = node->point->position[i] - queryNode->point->position[i];
-			distSq += diff * diff;
-		}
+		float dist = glm::length(node->point->position - queryNode->point->position);
 
-		if (distSq <= radiusSq) {
+		if (dist <= radius) {
 			for (E57Point* point : points)
 			{
 				if (point != queryNode->point)
@@ -147,12 +133,13 @@ bool KDTree::ContainsPointsWithinRadiusBesidesPoints(KDTreeNode* queryNode, std:
 
 		int cd = depth % k;  // Splitting dimension
 		float diff = queryNode->point->position[cd] - node->point->position[cd];
+		float diff2 = glm::length(queryNode->point->position[cd] - node->point->position[cd]);
 
 		// Recursively search left or right subtree based on distance
 		if (diff < 0) {
 			if (searchFunc(node->left, depth + 1))
 				return true;
-			if (diff * diff <= radiusSq) {
+			if (diff2 <= radius) {
 				if (searchFunc(node->right, depth + 1))
 					return true;
 			}
@@ -160,7 +147,7 @@ bool KDTree::ContainsPointsWithinRadiusBesidesPoints(KDTreeNode* queryNode, std:
 		else {
 			if (searchFunc(node->right, depth + 1))
 				return true;
-			if (diff * diff <= radiusSq) {
+			if (diff2 <= radius) {
 				if (searchFunc(node->left, depth + 1))
 					return true;
 			}

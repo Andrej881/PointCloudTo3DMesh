@@ -1,6 +1,8 @@
 #pragma once
 #include <E57Format/E57SimpleReader.h>
 #include <Eigen/Dense> 
+#include <unordered_set>
+#include <queue>
 
 #include "E57Point.h"
 #include "KDTree.h"
@@ -18,6 +20,7 @@ private:
 	bool hasNormals;
 	int count;
 	NormilizedPointsInfo info;
+	void OrientNormals(float radius);
 
 public:
 	void SetUpTree();

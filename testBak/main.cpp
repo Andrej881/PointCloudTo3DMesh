@@ -47,7 +47,9 @@ int main() {
     E57 e57(path);
 	
     /*clock_t begin = clock();
+
 	e57.CalculateNormals();
+
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 	printf("Time to calculate normals: %f\n", elapsed_secs);*/

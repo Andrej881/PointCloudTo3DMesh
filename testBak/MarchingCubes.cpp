@@ -19,7 +19,7 @@ void MarchingCubes::InitGrid()
 
 MarchingCubes::MarchingCubes(E57* e57) : ReconstructionAlgorithm(e57)
 {
-	this->margin = 5;
+	this->margin = 10;
 	this->voxelSize = 0.01f;
 }
 

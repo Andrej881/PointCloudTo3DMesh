@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <vector>
+#include <unordered_set>
 
 #include "E57Point.h"
 
@@ -25,9 +26,8 @@ private:
 public:
 	KDTree();
 	std::vector<KDTreeNode*> GetNeighborsWithinRadius(KDTreeNode* queryNode, float radius);
-	std::vector<KDTreeNode*> GetNeighborsOnRadius(glm::vec3 ballCenter, float radius, float tolerance);
+	std::vector<KDTreeNode*> GetNeighborsOnRadius(glm::vec3 ballCenter,  float radius, float tolerance);
 	bool ContainsPointsWithinRadiusBesidesPoints(KDTreeNode* queryNode, std::vector<E57Point*>& points, float radius);
-
 	void DeleteNode(KDTreeNode *& node);
 	void Insert(E57Point* point);
 	int GetSize();

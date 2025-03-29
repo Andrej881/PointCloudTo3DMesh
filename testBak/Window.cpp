@@ -205,7 +205,7 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
 
     glBindVertexArray(VAO);
 
-    //glPointSize(3.0f);
+    glPointSize(5.0f);
     if (this->renderMesh)
         glDrawArrays(GL_TRIANGLES, 0, algorithms.GetTriangles().size() * 3 * 2);    
     else

@@ -1,5 +1,36 @@
 #include "E57.h"
 
+void E57::OrientNormals(float radius)
+{
+    std::queue<KDTreeNode*> queue;
+    std::unordered_set<KDTreeNode*> visited;
+
+    KDTreeNode* start = tree.GetRandomNode();
+    if (!start) return;
+
+    queue.push(start);
+    visited.insert(start);
+
+    while (!queue.empty()) {
+        KDTreeNode* node = queue.front();
+        queue.pop();
+
+        // Získame susedov
+        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(node, radius);
+
+        for (auto& neighbor : neighbors) {
+            if (visited.find(neighbor) == visited.end()) {
+                // Porovnanie normál - ak sú opaèné, otoèíme
+                if (glm::dot(node->point->normal, neighbor->point->normal) < 0) {
+                    neighbor->point->normal = -neighbor->point->normal;
+                }
+                queue.push(neighbor);
+                visited.insert(neighbor);
+            }
+        }
+    }
+}
+
 void E57::SetUpTree()
 {
     tree.Clear();
@@ -22,6 +53,8 @@ E57::E57(e57::ustring path)
 int E57::ReadFile(e57::ustring & path)
 {    
     try {
+        if (tree.GetRoot() != nullptr)
+            tree.Clear();
         // Create ReaderOptions (use default options for now)
         e57::ReaderOptions options;
 
@@ -119,8 +152,20 @@ int E57::ReadFile(e57::ustring & path)
             point.position.x = (point.position.x - centerX) / maxDim;
             point.position.y = (point.position.y - centerY) / maxDim;
             point.position.z = (point.position.z - centerZ) / maxDim;
-        }
 
+            if (hasNormals)
+            {
+                // Renormalizácia normály
+                float length = std::sqrt(point.normal.x * point.normal.x +
+                    point.normal.y * point.normal.y +
+                    point.normal.z * point.normal.z);
+                if (length > 0.0f) {
+                    point.normal.x /= length;
+                    point.normal.y /= length;
+                    point.normal.z /= length;
+                }
+            }
+        }
     }
     catch (const e57::E57Exception& e) {
         std::cerr << "E57 error: " << e.what() << std::endl;
@@ -144,22 +189,22 @@ KDTree& E57::getTree()
 
 void E57::CalculateNormals()
 {
-    float radius = 0.2f;
+    float radius = 0.05f;
 
     if (hasNormals)
     {
+        printf("Cloud already has normals\n");
         return;
     }
 
-	SetUpTree();
+    if(tree.GetRoot() == nullptr)
+	    SetUpTree();
     KDTreeNode* seedPoint = this->tree.GetRoot();
     if (!seedPoint) {
         throw std::runtime_error("Point cloud is empty!");
     }
 
-    std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);  
-
-	hasNormals = true;
+    hasNormals = true;
 
     for (int i = 0; i < count; i++) {
         KDTreeNode* seedPoint = tree.FindNode(&this->points[i]);
@@ -178,47 +223,22 @@ void E57::CalculateNormals()
         }
         centroid /= static_cast<float>(neighbors.size());
 
-         glm::mat3 covariance = glm::mat3(0.0f);
-        for (auto neighbor : neighbors) {
+        Eigen::Matrix3f covariance = Eigen::Matrix3f::Zero();
+        for (auto& neighbor : neighbors) {
             glm::vec3 diff = neighbor->point->position - centroid;
-            covariance += glm::outerProduct(diff, diff);
+            Eigen::Vector3f d(diff.x, diff.y, diff.z);
+            covariance += d * d.transpose();
         }
-        covariance /= static_cast<float>(neighbors.size());
+        covariance /= neighbors.size();
        
-        Eigen::Matrix3f eigenCovariance;
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                eigenCovariance(row, col) = covariance[col][row]; // glm is column-major
-            }
-        }
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance);
+        Eigen::Vector3f normalEigen = solver.eigenvectors().col(0);
 
-        // Compute eigenvalues & eigenvectors
-        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(eigenCovariance);
-        Eigen::Vector3f normalEigen = solver.eigenvectors().col(0); // Smallest eigenvector
-
-        glm::vec3 normal(normalEigen.x(), normalEigen.y(), normalEigen.z());
-        normal = -glm::normalize(normal);        
-
-        glm::vec3 avgNeighborNormal(0.0f);
-        int validNormals = 0;
-
-        for (auto neighbor : neighbors) {
-            if (neighbor->point->hasNormal) {
-                avgNeighborNormal += neighbor->point->normal;
-                validNormals++;
-            }
-        }
-
-        if (validNormals > 0) {
-            avgNeighborNormal = glm::normalize(avgNeighborNormal);
-            if (glm::dot(normal, avgNeighborNormal) < 0) {
-                normal = -normal;  
-            }
-        }
-
-        points[i].normal = normal;
+        points[i].normal = glm::vec3(normalEigen.x(), normalEigen.y(), normalEigen.z());
         points[i].hasNormal = true;
     }
+    OrientNormals(radius);
+    printf("Normals calculated\n");
 }
 
 bool E57::GetHasNormals()
