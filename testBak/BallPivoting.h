@@ -1,7 +1,10 @@
 #pragma once
+#define GLM_ENABLE_EXPERIMENTAL
 #include <unordered_set>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/norm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/projection.hpp>
 
 #include "KDTree.h"
 #include "ReconstructionAlgorithm.h"
@@ -50,6 +53,8 @@ private:
 	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited, glm::vec3 ballCenter);
 	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited, glm::vec3 ballCenter);
 	bool ConsistentNormal(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
+
+	std::vector<glm::vec3> GetPossibleCenters(glm::vec3 A, glm::vec3 B, glm::vec3 midpoint, glm::vec3 C);
 
 	glm::vec3 ComputeCircumcenter(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, float& bRadius);
 	float ComputePivotingAngle(KDTreeNode* pA, KDTreeNode* pB, KDTreeNode* candidate);

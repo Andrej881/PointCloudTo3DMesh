@@ -25,7 +25,9 @@ private:
 	void InsertNode(KDTreeNode*& node, KDTreeNode* newNode, int depth);
 public:
 	KDTree();
+	std::vector<KDTreeNode*> GetNeighborsWithinToroidalRadius(const glm::vec3& A, const glm::vec3& B, float radius);
 	std::vector<KDTreeNode*> GetNeighborsWithinRadius(KDTreeNode* queryNode, float radius);
+	std::vector<KDTreeNode*> GetKNearestNeighbors(KDTreeNode* queryNode, int k);
 	std::vector<KDTreeNode*> GetNeighborsOnRadius(glm::vec3 ballCenter,  float radius, float tolerance);
 	bool ContainsPointsWithinRadiusBesidesPoints(KDTreeNode* queryNode, std::vector<E57Point*>& points, float radius);
 	void DeleteNode(KDTreeNode *& node);

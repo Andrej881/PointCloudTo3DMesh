@@ -195,14 +195,14 @@ void Cubes::CreateCube(int x, int y, int z)
 	{
 		for (Triangle triangle : side.triangles)
 		{
-			this->getTriangles().push_back(triangle);
+			this->GetTriangles().push_back(triangle);
 		}
 	}
 }
 
 void Cubes::Run()
 {
-	this->getTriangles().clear();
+	this->GetTriangles().clear();
 	GenerateMesh();
 }
 

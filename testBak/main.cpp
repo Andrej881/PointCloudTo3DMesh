@@ -55,7 +55,7 @@ int main() {
 	printf("Time to calculate normals: %f\n", elapsed_secs);*/
 	//FindDistancesBetweenPoints(e57.getPoints());
 
-	AlgorithmControl algorithms(&e57, BALL_PIVOTING);
+	AlgorithmControl algorithms(&e57, POISSON);
 
     myGuiImplementation gui(win.getWindow(), &e57);    
 

@@ -13,17 +13,12 @@ class MarchingCubes : public ReconstructionAlgorithm
 private:
 	std::mutex trianglesMutex;
 
-	float voxelSize;
-	int margin;
 	float minX, minY, minZ;
 
 	int voxelsInDimX, voxelsInDimY, voxelsInDimZ;
-	std::vector<std::vector<std::vector<float>>> grid; 
 
-	float isolevel = 0.1f;
+	float isolevel;
 
-	float CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index);
-	void GenerateMesh();
 	void GenerateCubeMesh(int x, int y, int z);
 
 	void SetGridInRange(int startIdx, int endIdx);
@@ -32,15 +27,24 @@ private:
 	glm::vec3 InterpolateEdge(int x, int y, int z, int edge);
 	void CreateTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c);
 
+protected:
+	float voxelSize;
+	std::vector<std::vector<std::vector<float>>> grid;
+
+	void GenerateMesh();
 	void InitGrid();
-	void SetGrid();
+	virtual void SetGrid();
+	virtual float CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index);
 public:
 	MarchingCubes(E57* e57);
-	MarchingCubes(float voxelSize, int margin, E57* e57);
+	MarchingCubes(float isolevel, float voxelSize, E57* e57);
 
 	void SetVoxelSize(float voxelSize);
-	void SetMargin(int margin);
 	void SetIsoLevel(float isolevel);
+
+	int GetVoxelsInDimX();
+	int GetVoxelsInDimY();
+	int GetVoxelsInDimZ();
 
 	void Run() override;
 	void SetUp() override;

@@ -45,8 +45,27 @@ std::vector<KDTreeNode*> KDTree::GetNeighborsWithinRadius(KDTreeNode* queryNode,
 
 	std::vector<KDTreeNode*> neighbors;
 
-	std::function<void(KDTreeNode*, int)> searchFunc = [&](KDTreeNode* node, int depth) {
-		if (node == nullptr) return;
+	if (root == nullptr) return neighbors;
+
+	// Vlastn˝ stack na heap (namiesto rekurzie alebo std::stack)
+	struct StackFrame {
+		KDTreeNode* node;
+		int depth;
+	};
+
+	// Alok·cia stacku s dostatoËnou kapacitou (napr. 64 prvkov na zaËiatok)
+	std::vector<StackFrame> stack;
+	stack.reserve(64); // Predalok·cia, aby sa zbytoËne nealokovalo Ëasto
+	stack.push_back({ root, 0 });
+
+	while (!stack.empty()) {
+		StackFrame current = stack.back();
+		stack.pop_back();
+
+		KDTreeNode* node = current.node;
+		int depth = current.depth;
+
+		if (node == nullptr) continue;
 
 		float dist = glm::length(node->point->position - queryNode->point->position);
 
@@ -54,22 +73,172 @@ std::vector<KDTreeNode*> KDTree::GetNeighborsWithinRadius(KDTreeNode* queryNode,
 			neighbors.push_back(node);
 		}
 
-		int cd = depth % k;  // Splitting dimension
+		int cd = depth % k;  // Rozdeæuj˙ca dimenzia
 		float diff = queryNode->point->position[cd] - node->point->position[cd];
 		float diff2 = glm::length(queryNode->point->position[cd] - node->point->position[cd]);
 
-		// Recursively search left or right subtree based on distance
+		// Rozhodnutie, ktorÈ vetvy prehæad·vaù
 		if (diff < 0) {
-			searchFunc(node->left, depth + 1);
+			stack.push_back({ node->left, depth + 1 });
 			if (diff2 <= radius) {
-				searchFunc(node->right, depth + 1);
+				stack.push_back({ node->right, depth + 1 });
 			}
 		}
 		else {
-			searchFunc(node->right, depth + 1);
+			stack.push_back({ node->right, depth + 1 });
 			if (diff2 <= radius) {
-				searchFunc(node->left, depth + 1);
+				stack.push_back({ node->left, depth + 1 });
 			}
+		}
+	}
+
+	return neighbors;
+}
+
+std::vector<KDTreeNode*> KDTree::GetKNearestNeighbors(KDTreeNode* queryNode, int k)
+{
+	struct NodeDist {
+		KDTreeNode* node;
+		float distance;
+	};
+	std::vector<NodeDist> distances;
+	std::vector<KDTreeNode*> neighbors;
+
+	if (root == nullptr) return neighbors;
+
+	// Vlastn˝ stack na heap (namiesto rekurzie alebo std::stack)
+	struct StackFrame {
+		KDTreeNode* node;
+		int depth;
+	};
+
+	// Alok·cia stacku s dostatoËnou kapacitou (napr. 64 prvkov na zaËiatok)
+	std::vector<StackFrame> stack;
+	stack.reserve(64); // Predalok·cia, aby sa zbytoËne nealokovalo Ëasto
+	stack.push_back({ root, 0 });
+
+	while (!stack.empty()) {
+		StackFrame current = stack.back();
+		stack.pop_back();
+
+		KDTreeNode* node = current.node;
+		int depth = current.depth;
+
+		if (node == nullptr) continue;
+
+		float dist = glm::length(node->point->position - queryNode->point->position);
+		bool same = false;
+		if (queryNode == node)
+			same = true;
+		if (!same)
+		{
+			for (int i = distances.size() - 1; i >= 0; i--)
+			{
+				if (node == distances[i].node)
+				{
+					same = true;
+					break;
+				}
+			}
+		}
+		if (!same)
+		{
+			if (distances.size() == 0) {
+				distances.push_back({ node , dist });
+			}
+			else
+			{
+				for (int i = distances.size() - 1; i >= 0; i--)
+				{
+					if (dist > distances[i].distance || i == 0)
+					{
+						int index = i + 1;
+						if (index < k)
+						{
+							if (index == distances.size())
+								distances.push_back({ node , dist });
+							else
+							{
+								if (distances.size() < k)
+									distances.push_back({nullptr, 1});
+								for (int i = distances.size() - 1; i > index; i--)
+								{
+									distances[i] = distances[i - 1];
+								}
+								distances[index] = { node , dist };
+							}
+
+						}
+						break;
+					}
+				}
+			}
+		}		
+
+		int cd = depth % this->k;  // Rozdeæuj˙ca dimenzia
+		float diff = queryNode->point->position[cd] - node->point->position[cd];
+		float diff2 = glm::length(queryNode->point->position[cd] - node->point->position[cd]);
+
+		float maxMinDist = distances.size() == k - 1 ? distances.back().distance : 1;
+
+		// Rozhodnutie, ktorÈ vetvy prehæad·vaù
+		if (diff < 0) {
+			stack.push_back({ node->left, depth + 1 });
+			if (diff2 <= maxMinDist) {
+				stack.push_back({ node->right, depth + 1 });
+			}
+		}
+		else {
+			stack.push_back({ node->right, depth + 1 });
+			if (diff2 <= maxMinDist) {
+				stack.push_back({ node->left, depth + 1 });
+			}
+		}
+	}
+
+	for (int i = 0; i < distances.size(); ++i)
+	{
+		neighbors.push_back(distances[i].node);
+	}
+
+	return neighbors;;
+}
+
+std::vector<KDTreeNode*> KDTree::GetNeighborsWithinToroidalRadius(const glm::vec3& A, const glm::vec3& B, float radius) {
+	std::vector<KDTreeNode*> neighbors;
+
+	auto pointToSegmentDistance = [](const glm::vec3& P, const glm::vec3& A, const glm::vec3& B) -> float {
+		glm::vec3 AB = B - A;
+		glm::vec3 AP = P - A;
+		float t = glm::dot(AP, AB) / glm::dot(AB, AB);
+		t = glm::clamp(t, 0.0f, 1.0f);
+		glm::vec3 closest = A + t * AB;
+		return glm::length(P - closest);
+		};
+
+	std::function<void(KDTreeNode*, int)> searchFunc = [&](KDTreeNode* node, int depth) {
+		if (node == nullptr) return;
+
+		float dist = pointToSegmentDistance(node->point->position, A, B);
+		if (dist <= radius) {
+			neighbors.push_back(node);
+		}
+
+		int cd = depth % k;  // Splitting dimension
+		float splitValue = node->point->position[cd];
+		float minA = A[cd] - radius;
+		float maxA = A[cd] + radius;
+		float minB = B[cd] - radius;
+		float maxB = B[cd] + radius;
+
+		bool searchLeft = (splitValue >= minA && splitValue >= minB);
+		bool searchRight = (splitValue <= maxA && splitValue <= maxB);
+
+		if (searchLeft) {
+			searchFunc(node->left, depth + 1);
+		}
+		if (searchRight) {
+			searchFunc(node->right, depth + 1);
 		}
 		};
 
@@ -201,6 +370,8 @@ void KDTree::Clear()
 	if (root == nullptr) 
 		return;
 	
+	size = 0;
+	maxDepth = 0;
 	KDTreeNode* current = root;
 	KDTreeNode* lastVisited = nullptr;
 

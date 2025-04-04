@@ -10,24 +10,24 @@ void MarchingCubes::InitGrid()
 	this->grid.clear();
 
 	NormilizedPointsInfo& info = e57->getInfo();
-	this->voxelsInDimX = (int)((info.maxX - info.minX) / voxelSize) + 1;
-	this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 1;
-	this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 1; this->voxelsInDimX = this->voxelsInDimY = this->voxelsInDimZ = (int)(1.0f / voxelSize) + 1;
+	this->voxelsInDimX = (int)((info.maxX - info.minX) / voxelSize) + 2;
+	this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 2;
+	this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 2;
 	
-	this->grid = std::vector<std::vector<std::vector<float>>>(this->voxelsInDimX, std::vector<std::vector<float>>(this->voxelsInDimY, std::vector<float>(this->voxelsInDimZ, 0.0f)));
+	this->grid = std::vector<std::vector<std::vector<float>>>(this->voxelsInDimX, std::vector<std::vector<float>>(this->voxelsInDimY, std::vector<float>(this->voxelsInDimZ, FLT_MIN)));
 }
 
 MarchingCubes::MarchingCubes(E57* e57) : ReconstructionAlgorithm(e57)
 {
-	this->margin = 10;
 	this->voxelSize = 0.01f;
+	this->isolevel = 0.2f;
 }
 
-MarchingCubes::MarchingCubes(float voxelSize, int margin, E57*e57) : ReconstructionAlgorithm(e57)
+MarchingCubes::MarchingCubes(float isolevel, float voxelSize, E57*e57) : ReconstructionAlgorithm(e57)
 {
 
-	this->margin = margin;
 	this->voxelSize = voxelSize;
+	this->isolevel = isolevel;
 }
 
 void MarchingCubes::SetVoxelSize(float voxelSize)
@@ -35,14 +35,22 @@ void MarchingCubes::SetVoxelSize(float voxelSize)
 	this->voxelSize = voxelSize;
 }
 
-void MarchingCubes::SetMargin(int margin)
-{
-	this->margin = margin;
-}
-
 void MarchingCubes::SetIsoLevel(float isolevel)
 {
 	this->isolevel = isolevel;
+}
+
+int MarchingCubes::GetVoxelsInDimX()
+{
+	return this->voxelsInDimX;
+}
+int MarchingCubes::GetVoxelsInDimY()
+{
+	return this->voxelsInDimY;
+}
+int MarchingCubes::GetVoxelsInDimZ()
+{
+	return this->voxelsInDimZ;
 }
 
 void MarchingCubes::SetGrid()
@@ -80,52 +88,32 @@ void MarchingCubes::SetGrid()
 
 glm::vec3 MarchingCubes::InterpolateEdge(int x, int y, int z, int edge)
 {
-	glm::vec3 cornerPositions[8] = {
-		glm::vec3(x, y, z),
-		glm::vec3(x + 1, y, z),
-		glm::vec3(x + 1, y + 1, z),
-		glm::vec3(x, y + 1, z),
-		glm::vec3(x, y, z + 1),
-		glm::vec3(x + 1, y, z + 1),
-		glm::vec3(x + 1, y + 1, z + 1),
-		glm::vec3(x, y + 1, z + 1)
+	static const int edgeTable[12][2] = {
+		{0, 1}, {1, 3}, {3, 2}, {2, 0},
+		{4, 5}, {5, 7}, {7, 6}, {6, 4},
+		{0, 4}, {1, 5}, {3, 7}, {2, 6}
 	};
 
-	int edgeVertices[12][2] = {
-		{0, 1}, {1, 2}, {2, 3}, {3, 0},
-		{4, 5}, {5, 6}, {6, 7}, {7, 4},
-		{0, 4}, {1, 5}, {2, 6}, {3, 7}
+	glm::ivec3 offsets[8] = {
+		{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
+		{0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}
 	};
 
-	glm::vec3 p1 = cornerPositions[edgeVertices[edge][0]];
-	glm::vec3 p2 = cornerPositions[edgeVertices[edge][1]];
+	int v1 = edgeTable[edge][0];
+	int v2 = edgeTable[edge][1];
 
-	int ix1 = static_cast<int>(p1.x);
-	int iy1 = static_cast<int>(p1.y);
-	int iz1 = static_cast<int>(p1.z);
+	glm::ivec3 p1 = glm::ivec3(x, y, z) + offsets[v1];
+	glm::ivec3 p2 = glm::ivec3(x, y, z) + offsets[v2];
 
-	int ix2 = static_cast<int>(p2.x);
-	int iy2 = static_cast<int>(p2.y);
-	int iz2 = static_cast<int>(p2.z);
+	double d1 = grid[p1.x][p1.y][p1.z];
+	double d2 = grid[p2.x][p2.y][p2.z];
 
-	float val1 = this->grid[ix1][iy1][iz1];
-	float val2 = this->grid[ix2][iy2][iz2];
-	
-	glm::vec3 interpolatedVertex;
-	
-	if (fabs(isolevel - val1) < 0.00001)
-		interpolatedVertex = p1;
-	else if (fabs(isolevel - val2) < 0.00001)
-		interpolatedVertex = p2 ;
-	else if (fabs(val1 - val2) < 0.00001)
-		interpolatedVertex = p1;
-	else
-	{
-		float mu = (isolevel - val1) / (val2 - val1);
-		interpolatedVertex.x = p1.x + mu * (p2.x - p1.x);
-		interpolatedVertex.y = p1.y + mu * (p2.y - p1.y);
-		interpolatedVertex.z = p1.z + mu * (p2.z - p1.z);
-	}
+	if (std::abs(d1 - d2) < 1e-6) return glm::vec3(p1);
+
+	double t = (isolevel - d1) / (d2 - d1);
+
+	auto interpolatedVertex = glm::mix(glm::vec3(p1), glm::vec3(p2), t);
+
 	interpolatedVertex *= this->voxelSize;
 	if (e57)
 	{
@@ -152,7 +140,7 @@ void MarchingCubes::CreateTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
 
 	std::unique_lock<std::mutex> lock(this->trianglesMutex);
 
-	this->getTriangles().push_back(tri);
+	this->GetTriangles().push_back(tri);
 
 	lock.unlock();
 }
@@ -194,7 +182,6 @@ float MarchingCubes::CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 
 		minResult.exponent = exponent;
 		minResult.result = result;
 	}*/
-
 	return result;
 }
 
@@ -256,15 +243,18 @@ void MarchingCubes::GenerateCubeMesh(int x, int y, int z)
 		return;
 	// Determine the corner indices based on the scalar field values (this could be density, signed distance, etc.)
 	int cubeIndex = 0;
-	if (this->grid[x][y][z] >= isolevel) cubeIndex |= 1;
-	if (this->grid[x + 1][y][z] >= isolevel) cubeIndex |= 2;
-	if (this->grid[x + 1][y + 1][z] >= isolevel) cubeIndex |= 4;
-	if (this->grid[x][y + 1][z] >= isolevel) cubeIndex |= 8;
-	if (this->grid[x][y][z + 1] >= isolevel) cubeIndex |= 16;
-	if (this->grid[x + 1][y][z + 1] >= isolevel) cubeIndex |= 32;
-	if (this->grid[x + 1][y + 1][z + 1] >= isolevel) cubeIndex |= 64;
-	if (this->grid[x][y + 1][z + 1] >= isolevel) cubeIndex |= 128;
+	if (this->grid[x][y][z] > isolevel) cubeIndex |= 1;
+	if (this->grid[x + 1][y][z] > isolevel) cubeIndex |= 2;
+	if (this->grid[x + 1][y + 1][z] > isolevel) cubeIndex |= 4;
+	if (this->grid[x][y + 1][z] > isolevel) cubeIndex |= 8;
+	if (this->grid[x][y][z + 1] > isolevel) cubeIndex |= 16;
+	if (this->grid[x + 1][y][z + 1] > isolevel) cubeIndex |= 32;
+	if (this->grid[x + 1][y + 1][z + 1] > isolevel) cubeIndex |= 64;
+	if (this->grid[x][y + 1][z + 1] > isolevel) cubeIndex |= 128;
 		
+	/*printf("densities : %f %f %f %f %f %f %f %f\n",
+		this->grid[x][y][z], this->grid[x + 1][y][z], this->grid[x + 1][y + 1][z], this->grid[x][y + 1][z],
+		this->grid[x][y][z + 1], this->grid[x + 1][y][z + 1], this->grid[x + 1][y + 1][z + 1], this->grid[x][y + 1][z + 1]);*/
 
 	// Get the edges that are intersected by the surface
 	int edges = edgeTable[cubeIndex];
@@ -314,30 +304,23 @@ void MarchingCubes::SetGridInRange(int startIdx, int endIdx)
 		int indexY = (y - minY) / voxelSize;
 		int indexZ = (z - minZ) / voxelSize;
 
-		float density = CalculateDensity(glm::vec3(x, y, z), glm::vec3(minX, minY, minZ), glm::vec3(indexX, indexY, indexZ));
-
-		grid[indexX][indexY][indexZ] = std::max(grid[indexX][indexY][indexZ], density);
-
-		for (int j1 = -margin; j1 <= margin; ++j1)
-		{
-			for (int j2 = -margin; j2 <= margin; ++j2)
-			{
-				for (int j3 = -margin; j3 <= margin; ++j3)
+		for (int dx = 0; dx <= 1; dx++)
+			for (int dy = 0; dy <= 1; dy++)
+				for (int dz = 0; dz <= 1; dz++)
 				{
-					if ((j1 == 0 && j2 == 0 && j3 == 0) || (abs(j1) + abs(j2) + abs(j3) > margin))
-						continue;
+					int ix = indexX + dx;
+					int iy = indexY + dy;
+					int iz = indexZ + dz;
 
-					int newIndexX = indexX + j1, newIndexY = indexY + j2, newIndexZ = indexZ + j3;
-					if (newIndexX < 0 || newIndexY < 0 || newIndexZ < 0 || newIndexX >= voxelsInDimX || newIndexY >= voxelsInDimY || newIndexZ >= voxelsInDimZ)
-					{
-						continue;
-					}
+					float density = CalculateDensity(glm::vec3(x, y, z), glm::vec3(minX, minY, minZ), glm::vec3(ix, iy, iz));
 
-					float marginDensity = CalculateDensity(glm::vec3(x, y, z), glm::vec3(minX, minY, minZ), glm::vec3(newIndexX, newIndexY, newIndexZ));
-					grid[newIndexX][newIndexY][newIndexZ] = std::max(grid[newIndexX][newIndexY][newIndexZ], marginDensity);
-				}
-			}
-		}
+					std::unique_lock<std::mutex> lock(this->trianglesMutex);
+					if (FLT_MIN == grid[ix][iy][iz])
+						grid[ix][iy][iz] = density;
+					else
+						grid[ix][iy][iz] += density;
+					lock.unlock();
+				}		
 	}
 }
 
@@ -360,7 +343,7 @@ void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int en
 
 void MarchingCubes::Run()
 {
-	this->getTriangles().clear();
+	this->GetTriangles().clear();
 	GenerateMesh();
 }
 

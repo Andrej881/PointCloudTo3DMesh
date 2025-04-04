@@ -8,7 +8,7 @@ void ReconstructionAlgorithm::SetUp()
 {
 }
 
-std::vector<Triangle>& ReconstructionAlgorithm::getTriangles()
+std::vector<Triangle>& ReconstructionAlgorithm::GetTriangles()
 {
     return this->triangles;
 }

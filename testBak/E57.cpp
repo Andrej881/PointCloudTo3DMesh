@@ -16,7 +16,8 @@ void E57::OrientNormals(float radius)
         queue.pop();
 
         // Získame susedov
-        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(node, radius);
+        //std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(node, radius);
+        std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(node, radius);
 
         for (auto& neighbor : neighbors) {
             if (visited.find(neighbor) == visited.end()) {
@@ -89,7 +90,7 @@ int E57::ReadFile(e57::ustring & path)
         // Allocate memory for points
         points = std::vector<E57Point>(); // X, Y, Z interleaved
         std::vector<float> XP(pointCount), YP(pointCount), ZP(pointCount);
-        std::vector<float> NorX, NorY, NorZ;
+        std::vector<float> NorX(pointCount), NorY(pointCount), NorZ(pointCount);
         // Prepare buffers for the reader
         e57::Data3DPointsFloat buffer;
         buffer.cartesianX = XP.data();
@@ -189,7 +190,8 @@ KDTree& E57::getTree()
 
 void E57::CalculateNormals()
 {
-    float radius = 0.05f;
+    //float radius = 0.05f;
+    int numOfNeigbors = 10;
 
     if (hasNormals)
     {
@@ -211,7 +213,8 @@ void E57::CalculateNormals()
         if (seedPoint == nullptr)
             continue;
 
-        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);
+        //std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);
+        std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(seedPoint, numOfNeigbors);
         if (neighbors.size() < 3)
             continue;
 
@@ -237,7 +240,7 @@ void E57::CalculateNormals()
         points[i].normal = glm::vec3(normalEigen.x(), normalEigen.y(), normalEigen.z());
         points[i].hasNormal = true;
     }
-    OrientNormals(radius);
+    OrientNormals(numOfNeigbors);
     printf("Normals calculated\n");
 }
 

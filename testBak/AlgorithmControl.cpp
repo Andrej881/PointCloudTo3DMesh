@@ -1,9 +1,9 @@
 #include "AlgorithmControl.h"
 
-AlgorithmControl::AlgorithmControl(E57* e):e57(e), cubes(e), marchinCubes(e), bp(e), activeAlgorithm(nullptr)
+AlgorithmControl::AlgorithmControl(E57* e):e57(e), cubes(e), marchinCubes(e), bp(e),poisson(e), activeAlgorithm(nullptr)
 {}
 
-AlgorithmControl::AlgorithmControl(E57 * e, algorithms starting) :e57(e), cubes(e), marchinCubes(e), bp(e)
+AlgorithmControl::AlgorithmControl(E57 * e, algorithms starting) :e57(e), cubes(e), marchinCubes(e), bp(e), poisson(e)
 {
 	this->active = starting;
 	switch (starting)
@@ -16,6 +16,9 @@ AlgorithmControl::AlgorithmControl(E57 * e, algorithms starting) :e57(e), cubes(
 		break;
 	case BALL_PIVOTING:
 		this->activeAlgorithm = &bp;
+		break;
+	case POISSON:
+		this->activeAlgorithm = &poisson;
 		break;
 	}
 	SetUp();
@@ -45,6 +48,9 @@ void AlgorithmControl::ChangeAlgorithm(algorithms a)
 	case BALL_PIVOTING:
 		this->activeAlgorithm = &bp;
 		break;
+	case POISSON:
+		this->activeAlgorithm = &poisson;
+		break;
 	}
 	SetUp();
 }
@@ -58,9 +64,9 @@ void AlgorithmControl::SetUp()
 std::vector<Triangle>& AlgorithmControl::GetTriangles()
 {
 	if (this->activeAlgorithm)
-		return this->activeAlgorithm->getTriangles();
+		return this->activeAlgorithm->GetTriangles();
 	else 
-		return cubes.getTriangles();
+		return cubes.GetTriangles();
 		
 }
 

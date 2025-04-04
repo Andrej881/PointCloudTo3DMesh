@@ -3,9 +3,10 @@
 #include "MarchingCubes.h"
 #include "Cubes.h"
 #include "BallPivoting.h"
+#include "Poisson.h"
 
 enum algorithms {
-	CUBES, MARCHING_CUBES, BALL_PIVOTING
+	CUBES, MARCHING_CUBES, BALL_PIVOTING, POISSON
 };
 
 class AlgorithmControl
@@ -17,6 +18,7 @@ private:
 
 	Cubes cubes;
 	MarchingCubes marchinCubes;
+	Poisson poisson;
 	BallPivoting bp;
 
 	ReconstructionAlgorithm* activeAlgorithm;

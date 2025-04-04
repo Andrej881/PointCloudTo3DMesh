@@ -12,7 +12,7 @@ protected:
 public:
 	virtual void Run(); // run the algorithm (edites triangles)
 	virtual void SetUp(); // set up the algorithm, for example after loading new pointCloud
-	std::vector<Triangle>& getTriangles();
+	std::vector<Triangle>& GetTriangles();
 
 	ReconstructionAlgorithm(E57* e57);
 	~ReconstructionAlgorithm();
