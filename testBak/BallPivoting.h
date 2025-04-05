@@ -48,6 +48,14 @@ struct Triangle2 {
 				triangle.normal = -triangle.normal;
 		}
 	}
+	bool operator==(const Triangle2& other) const {
+		return (p1 == other.p1 && p2 == other.p2 && p3 == other.p3) ||
+			(p1 == other.p2 && p2 == other.p3 && p3 == other.p1) ||
+			(p1 == other.p3 && p2 == other.p1 && p3 == other.p2) ||
+			(p1 == other.p1 && p2 == other.p3 && p3 == other.p2) ||
+			(p1 == other.p2 && p2 == other.p1 && p3 == other.p3) ||
+			(p1 == other.p3 && p2 == other.p2 && p3 == other.p1);
+	}
 };
 
 class BallPivoting : public ReconstructionAlgorithm

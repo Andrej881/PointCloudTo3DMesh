@@ -235,7 +235,7 @@ KDTree& E57::getTree()
 
 void E57::CalculateNormals()
 {
-    int numOfNeigbors = 30;
+    int numOfNeigbors = 5;
 
     if (hasNormals)
     {

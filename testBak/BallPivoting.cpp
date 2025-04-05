@@ -3,11 +3,11 @@
 bool BallPivoting::IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited)
 {   
     float angle = glm::degrees(ComputePivotingAngle(a, b, c));
-    if (angle <= 15 || angle >= 150)
+    if (angle <= 10 || angle >= 170)
         return false;
 
-    if (!ConsistentNormal(a, b, c))
-        return false;
+    //if (!ConsistentNormal(a, b, c))
+       //return false;
 
     if (true || visited.GetRoot() != nullptr)
     {
@@ -201,6 +201,17 @@ struct EdgeHash
         return h1 ^ h2;
     }
 };
+
+
+struct Triangle2Hash
+{
+	std::size_t operator()(const Triangle2& e) const {
+		std::size_t h1 = std::hash<KDTreeNode*>()(e.p1);
+		std::size_t h2 = std::hash<KDTreeNode*>()(e.p2);
+		std::size_t h3 = std::hash<KDTreeNode*>()(e.p3);
+		return h1 ^ h2 ^ h3;
+	}
+};
 int counter = 0;
 void BallPivoting::Run()
 {
@@ -211,6 +222,7 @@ void BallPivoting::Run()
 	std::vector<Triangle>& triangles = this->GetTriangles();
     std::unordered_set<KDTreeNode*> visited;
     std::unordered_set<Edge, EdgeHash> visited2;
+    std::unordered_set<Triangle2, Triangle2Hash> visited3;
 
     KDTree visitedTree;
     // Step 1: Find the initial seed triangle
@@ -228,6 +240,8 @@ void BallPivoting::Run()
     visited2.insert({ seedTriangle.p1 ,seedTriangle.p2 });
     visited2.insert({ seedTriangle.p1 ,seedTriangle.p3 });
     visited2.insert({ seedTriangle.p2 ,seedTriangle.p3 });    
+
+	visited3.insert(seedTriangle);
 
     // Step 2: Pivot and expand the mesh
     //std::vector<Triangle2> frontier = { seedTriangle };
@@ -268,6 +282,8 @@ void BallPivoting::Run()
 			visited2.insert({ seedTriangle.p1 ,seedTriangle.p2 });
 			visited2.insert({ seedTriangle.p1 ,seedTriangle.p3 });
 			visited2.insert({ seedTriangle.p2 ,seedTriangle.p3 });
+
+            visited3.insert(seedTriangle);
             //frontier.push_back(seedTriangle);
             frontier2.push_back({ seedTriangle.p1, seedTriangle.p2 });
             frontier2.push_back({ seedTriangle.p1, seedTriangle.p3 });
@@ -326,8 +342,11 @@ void BallPivoting::Run()
                 if (candidate == pA || candidate == pB)
                     continue;  // Skip already processed points;            
 
-				if (visited2.count({ pA, candidate }) && visited2.count({ pB, candidate }))
-					continue;  
+				/*if (visited2.count({pA, candidate}) && visited2.count({pB, candidate}))
+					continue;*/
+
+                if (visited3.count({ pA, pB, candidate }))
+                    continue;
 
                 // Check if the new triangle is valid
                 if (IsTriangleValid(pA, pB, candidate, visitedTree))
@@ -353,6 +372,9 @@ void BallPivoting::Run()
                     visited2.insert({ pA, pB });
                     visited2.insert({ pA, candidate });
                     visited2.insert({ pB, candidate });
+
+                    visited3.insert(newTriangle);
+
                     stop = true;
                     break;  // Only add one new triangle per edge
                 }
@@ -368,7 +390,7 @@ void BallPivoting::Run()
 void BallPivoting::SetUp()
 {
     if(!e57->GetHasNormals())
-        e57->CalculateNormals();
+        //e57->CalculateNormals();
     if (tree->GetRoot() == nullptr)
         e57->SetUpTree();
 }
