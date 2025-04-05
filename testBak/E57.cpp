@@ -43,8 +43,8 @@ void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTre
         if((i - startIndex) % (size / 5) == 0)
 			printf("Calculating normals on thread[%lu] %d%%\n", std::this_thread::get_id(), ((i - startIndex) * 100) / size);
 
-        //std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);
-        std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(seedPoint, numOfNeighbors);
+        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, 0.05);
+        //std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(seedPoint, numOfNeighbors);
 
         std::unique_lock<std::mutex> lock(this->mutex);
         neighborsCache[&this->points[i]] = neighbors;
