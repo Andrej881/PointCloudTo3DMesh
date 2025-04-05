@@ -1,21 +1,17 @@
 #include "BallPivoting.h"
 
-bool BallPivoting::IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited, glm::vec3 ballCenter)
+bool BallPivoting::IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited)
 {   
-    if (glm::length(a->point->position - b->point->position) > 2 * radius || glm::length(c->point->position - b->point->position) > 2 * radius || glm::length(a->point->position - c->point->position) > 2 * radius)
-    {
-        //printf("AB[%f], BC[%f], AC[%f]", glm::length(a->point->position - b->point->position), glm::length(c->point->position - b->point->position), glm::length(a->point->position - c->point->position));
-        return false;
-    }
-    if (a->point->position == b->point->position || b->point->position == c->point->position || c->point->position == a->point->position) 
+    float angle = glm::degrees(ComputePivotingAngle(a, b, c));
+    if (angle <= 15 || angle >= 150)
         return false;
 
     if (!ConsistentNormal(a, b, c))
         return false;
 
-    if (visited.GetRoot() != nullptr)
+    if (true || visited.GetRoot() != nullptr)
     {
-        if (ContainsAnotherPoints(a, b, c, visited, ballCenter))
+        if (ContainsAnotherPoints(a, b, c, visited))
             return false;
     }
 
@@ -24,6 +20,27 @@ bool BallPivoting::IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, 
 
 glm::vec3 BallPivoting::ComputeCircumcenter(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, float& bRadius)
 {
+
+    /*glm::vec3 AB = b->point->position - a->point->position;
+    float d = glm::length(AB);
+    if (d > 2 * radius) return glm::vec3(-5.0f); // Hrana je príliš dlhá
+    glm::vec3 M = (a->point->position + b->point->position) * 0.5f;
+    float h = sqrt(radius * radius - (d * 0.5f) * (d * 0.5f));
+    // Vektor kolmý na AB v rovine definovanej bodmi A, B, C.
+    glm::vec3 N = glm::normalize(glm::cross(AB, c->point->position - a->point->position));
+    if (glm::length(N) < 1e-6) return glm::vec3(-5.0f); // Body sú príliš blízko kolineárne
+    glm::vec3 perp = glm::normalize(glm::cross(N, AB));
+    // Dve možné kandidátske polohy gu¾ového stredu.
+    glm::vec3 center1 = M + h * perp;
+    glm::vec3 center2 = M - h * perp;
+    // Vyberieme tú možnos, ktorej vzdialenos od bodu C je bližšie k r.
+    float err1 = fabs(glm::length(center1 - c->point->position) - radius);
+    float err2 = fabs(glm::length(center2 - c->point->position) - radius);
+    if (err1 < err2)
+        return center1;
+    else
+        return center2;*/
+
     glm::vec3 A = a->point->position;
     glm::vec3 B = b->point->position;
     glm::vec3 C = c->point->position;
@@ -58,9 +75,11 @@ glm::vec3 BallPivoting::ComputeCircumcenter(KDTreeNode* a, KDTreeNode* b, KDTree
     return ballPosition;
 }
 
+bool fristSearch = true;
 Triangle2 BallPivoting::FindInitialTriangle(std::unordered_set<KDTreeNode*>& visited, KDTree& visitedTree)
 {
-    for (int i = 0; i < 1; ++i)
+    int iterations = fristSearch ? 1000 : 1;
+    for (int i = 0; i < iterations; ++i)
     {
         //printf("finding init triangle \n");
         KDTreeNode* seedPoint = nullptr;
@@ -75,7 +94,7 @@ Triangle2 BallPivoting::FindInitialTriangle(std::unordered_set<KDTreeNode*>& vis
                 seedPoint = nullptr;
             help++;
             if (help > this->e57->getCount() / 4)
-                break;
+                return { nullptr, nullptr, nullptr};
         }
 
         std::vector<KDTreeNode*> neighbors = tree->GetNeighborsWithinRadius(seedPoint, 2 * radius);
@@ -91,16 +110,16 @@ Triangle2 BallPivoting::FindInitialTriangle(std::unordered_set<KDTreeNode*>& vis
                 {
                     float ballRadius;
                     glm::vec3 ballCenter = ComputeCircumcenter(seedPoint, neighbor, neighbor2, ballRadius);
-                    if (IsTriangleValid(seedPoint, neighbor, neighbor2, visitedTree, ballCenter))
+                    if (IsTriangleValid(seedPoint, neighbor, neighbor2, visitedTree))
                     {
-                        Triangle2 t = { seedPoint, neighbor, neighbor2, ballCenter };
+                        Triangle2 t = { seedPoint, neighbor, neighbor2 };
                         return t;
                     }
                 }
             }
         }
     }
-    return { nullptr, nullptr, nullptr, glm::vec3(0)};
+    return { nullptr, nullptr, nullptr};
     
 }
 bool BallPivoting::IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c)
@@ -114,17 +133,21 @@ bool BallPivoting::IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeN
     return true;
 }
 
-bool BallPivoting::ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited, glm::vec3 ballCenter)
+bool BallPivoting::ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited)
 {
-    KDTreeNode ballCenterNode = { new E57Point{ballCenter}, nullptr, nullptr, nullptr };
+    float rad;
+	glm::vec3 center = ComputeCircumcenter(a, b, c, rad);
+	/*if (center.x == -5.0f)
+		return false;*/
+    E57Point pC = { center };
+    KDTreeNode ballCenterNode = { &pC, nullptr, nullptr, nullptr };
 
     std::vector<E57Point*> points;
     points.push_back(a->point);
     points.push_back(b->point);
     points.push_back(c->point);
 
-    bool contains = tree->ContainsPointsWithinRadiusBesidesPoints(&ballCenterNode, points, radius);// -this->tolerance);
-    delete ballCenterNode.point;
+    bool contains = tree->ContainsPointsWithinRadiusBesidesPoints(&ballCenterNode, points, rad -this->tolerance);
     return contains;
 }
 
@@ -140,60 +163,26 @@ bool BallPivoting::ConsistentNormal(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c)
     bool isBConsistent = glm::dot(triangleNormal, b->point->normal) > 0;
     bool isCConsistent = glm::dot(triangleNormal, c->point->normal) > 0;
 
+
     // If all vertex normals are consistent, return true
-    return isAConsistent && isBConsistent && isCConsistent;
-}
+    return isAConsistent == isBConsistent && isBConsistent == isCConsistent;
 
-std::vector<glm::vec3> BallPivoting::GetPossibleCenters(glm::vec3 A, glm::vec3 B, glm::vec3 midpoint, glm::vec3 C)
-{
-    std::vector<glm::vec3> possibleCenters = std::vector<glm::vec3>();
-
-    glm::vec3 AB = B - A;
-    glm::vec3 dir = glm::normalize(AB);
-
-    // Najdenie najblizsieho bodu na usecke AB k bodu P
-    glm::vec3 closest = A + glm::proj(C - A, AB);
-    float distToLineSq = glm::distance2(C, closest);
-
-    if (distToLineSq > radius * radius) {
-        return possibleCenters; // Ziadne riesenie
-    }
-
-    // Vzdialenost medzi najblizsim bodom a hladanym stredom
-    float h = sqrt(radius * radius - distToLineSq);
-
-    // Vektor ortogonalny na AB cez P
-    glm::vec3 ortho = glm::normalize(C - closest);
-    if (glm::length(ortho) == 0) {
-        // Ak je P presne na usecke, hladane stredy su na kruznici
-        ortho = glm::vec3(1, 0, 0); // Zvol nejaku lubovolnu os
-    }
-
-    // Mozne stredy S1 a S2
-    glm::vec3 center1 = closest + h * ortho;
-    glm::vec3 center2 = closest - h * ortho;
-
-    possibleCenters.push_back(center1);
-    possibleCenters.push_back(center2);
-
-    return possibleCenters;
+    
 }
 
 BallPivoting::BallPivoting(E57* e57) : ReconstructionAlgorithm(e57)
 {
     this->tree = &e57->getTree();
-	this->radius = this->initRadius = 0.05f;
-    this->lowerRadius = 0.04f;
+	this->radius = this->initRadius = 0.02f;
+    this->lowerRadius = 0.01f;
     this->tolerance = this->radius * 0.05;
-    this->rotationAngle = 5;
 }
 
-BallPivoting::BallPivoting(E57* e57, float radius,float lowerRadius, float toleranceMultiplier, float rotationAngle) : ReconstructionAlgorithm(e57)
+BallPivoting::BallPivoting(E57* e57, float radius,float lowerRadius, float toleranceMultiplier) : ReconstructionAlgorithm(e57)
 {
     this->tree = &e57->getTree();
 	this->radius = this->initRadius = radius;
     this->tolerance = radius * toleranceMultiplier;
-    this->rotationAngle = rotationAngle;
 }
 void BallPivoting::SetLowerRadius(float radius)
 {
@@ -203,14 +192,26 @@ void BallPivoting::SetRadius(float radius)
 {
 	this->radius = radius;
 }
+
+struct EdgeHash
+{
+	std::size_t operator()(const Edge& e) const {
+        std::size_t h1 = std::hash<KDTreeNode*>()(e.a);
+        std::size_t h2 = std::hash<KDTreeNode*>()(e.b);
+        return h1 ^ h2;
+    }
+};
 int counter = 0;
 void BallPivoting::Run()
 {
-    float radiusStep = (this->initRadius - this->lowerRadius) / 20;
+	int numOfRadiusSteps = 2;
+    float radiusStep = numOfRadiusSteps > 0 ? (this->initRadius - this->lowerRadius) / numOfRadiusSteps : 0;
 
     this->GetTriangles().clear();
 	std::vector<Triangle>& triangles = this->GetTriangles();
     std::unordered_set<KDTreeNode*> visited;
+    std::unordered_set<Edge, EdgeHash> visited2;
+
     KDTree visitedTree;
     // Step 1: Find the initial seed triangle
     Triangle2 seedTriangle = FindInitialTriangle(visited, visitedTree);
@@ -224,15 +225,23 @@ void BallPivoting::Run()
     visitedTree.Insert(seedTriangle.p2->point);
     visitedTree.Insert(seedTriangle.p3->point);
 
+    visited2.insert({ seedTriangle.p1 ,seedTriangle.p2 });
+    visited2.insert({ seedTriangle.p1 ,seedTriangle.p3 });
+    visited2.insert({ seedTriangle.p2 ,seedTriangle.p3 });    
+
     // Step 2: Pivot and expand the mesh
-    std::vector<Triangle2> frontier = { seedTriangle };
-    while (!frontier.empty() || this->GetTriangles().size() < 100000) 
+    //std::vector<Triangle2> frontier = { seedTriangle };
+    
+    std::vector<Edge> frontier2 = { {seedTriangle.p1, seedTriangle.p2} };
+    frontier2.push_back({ seedTriangle.p1, seedTriangle.p3 });
+    frontier2.push_back({ seedTriangle.p2, seedTriangle.p3 });
+    while (!frontier2.empty()) 
     {
         if (this->GetTriangles().size() % 1000 == 0)
-            printf("[mod1000] cur num of triangles %d num of trinagles in front %d\n", this->GetTriangles().size(), frontier.size());
-        if (frontier.empty())
+            //printf("[mod1000] cur num of triangles %d num of trinagles in front %d\n", this->GetTriangles().size(), frontier.size());
+            printf("[mod1000] cur num of triangles %d num of edges in front %d\n", this->GetTriangles().size(), frontier2.size());
+        if (frontier2.empty())
         {
-            break;
             radius -= radiusStep;
             tolerance = radius * 0.05;
             printf("[NEW INIT] cur num of triangles %d\n", this->GetTriangles().size());
@@ -242,11 +251,12 @@ void BallPivoting::Run()
             {
                 printf("[NEW INIT NULL] cur num of triangles %d\n", this->GetTriangles().size());
                 counter++;
-                if (counter > 20)
+                if (counter > numOfRadiusSteps)
                     break;
                 continue;
             }
-            radiusStep = (this->radius - this->lowerRadius) / 20;
+            radius = initRadius;
+            tolerance = radius * 0.05;
             counter = 0;
             triangles.push_back(seedTriangle.triangle);
             visited.insert(seedTriangle.p1);
@@ -255,88 +265,103 @@ void BallPivoting::Run()
             visitedTree.Insert(seedTriangle.p1->point);
             visitedTree.Insert(seedTriangle.p2->point);
             visitedTree.Insert(seedTriangle.p3->point);
-            frontier.push_back(seedTriangle);
+			visited2.insert({ seedTriangle.p1 ,seedTriangle.p2 });
+			visited2.insert({ seedTriangle.p1 ,seedTriangle.p3 });
+			visited2.insert({ seedTriangle.p2 ,seedTriangle.p3 });
+            //frontier.push_back(seedTriangle);
+            frontier2.push_back({ seedTriangle.p1, seedTriangle.p2 });
+            frontier2.push_back({ seedTriangle.p1, seedTriangle.p3 });
+            frontier2.push_back({ seedTriangle.p2, seedTriangle.p3 });
         }
-        Triangle2 current = frontier.back();
-        frontier.pop_back();
 
-        // For each edge of the triangle, try to expand
-        KDTreeNode* edges[3][2] = {
-            {current.p1, current.p2},
-            {current.p2, current.p3},
-            {current.p3, current.p1}
-        };
-        for (auto& edge : edges)
-        {
-            KDTreeNode* pA = edge[0];
-            KDTreeNode* pB = edge[1];
-            glm::vec3 ballCenter = current.ballCenter;
+        Edge current = frontier2.back();
+        frontier2.pop_back();
 
-            glm::vec3 midPoint = (pA->point->position + pB->point->position) / 2.0f;
-            E57Point m = { midPoint ,glm::vec3(0.0f), false };
-            KDTreeNode node = {&m,nullptr,nullptr,nullptr};
+        KDTreeNode* pA = current.a;
+        KDTreeNode* pB = current.b;
 
-            float r = glm::length(midPoint - ballCenter);
+        glm::vec3 midpoint = (pA->point->position + pB->point->position) / 2.0f;
+        E57Point m = { midpoint ,glm::vec3(0.0f), false };
+        KDTreeNode node = { &m,nullptr,nullptr,nullptr };
 
-            //std::vector<KDTreeNode*> candidates = tree->GetNeighborsWithinRadius(&node,r*2);
-            std::vector<KDTreeNode*> candidates = tree->GetNeighborsWithinToroidalRadius(pA->point->position, pB->point->position, radius);
-            bool createdTriangle = false;
+        bool stop = false;
+        for (int i = 0; i < 1; ++i)
+        {   
+            if(stop)
+				break;
+
+            std::vector<KDTreeNode*> candidates = tree->GetNeighborsWithinRadius(&node, radius * 2);
+
+            std::sort(candidates.begin(), candidates.end(), [&](KDTreeNode* a, KDTreeNode* b)
+                {
+                    /*float angleA = glm::degrees(ComputePivotingAngle(pA, pB, a));
+                    float angleB = glm::degrees(ComputePivotingAngle(pA, pB, b));
+
+                    return angleA < angleB;*/
+
+					/*float distanceA = glm::length(a->point->position - midpoint);
+					float distanceB = glm::length(b->point->position - midpoint);
+					return distanceA < distanceB;*/
+
+                    glm::vec3 ballCenterA = (midpoint + a->point->position) / 2.0f;
+					glm::vec3 ballCenterB = (midpoint + b->point->position) / 2.0f;
+
+					float distA = glm::length(ballCenterA - a->point->position);
+					float distB = glm::length(ballCenterB - b->point->position);
+
+					return distA < distB;
+                });
+
             for (KDTreeNode*& candidate : candidates)
             {
-                if (createdTriangle)
-                    break;
-                if (visited.count(candidate) || candidate == pA || candidate == pB)
-                    continue;  // Skip already processed points
-                std::vector<glm::vec3> centers = GetPossibleCenters(pA->point->position, pB->point->position, midPoint, candidate->point->position);
 
-                for (glm::vec3& center : centers)
+                glm::vec3 ballCenter = (midpoint + candidate->point->position) / 2.0f;
+                float dist = glm::length(ballCenter - candidate->point->position);
+                if (dist > radius + tolerance)
                 {
-                    // Check if the new triangle is valid
-                    if (IsTriangleValid(pA, pB, candidate, visitedTree, center))
-                    {
-                        // Form a new triangle
-                        Triangle2 newTriangle = { pA, pB,candidate, center };
-                        triangles.push_back(newTriangle.triangle);
-                        frontier.push_back(newTriangle);
-                        visited.insert(candidate);
-                        visitedTree.Insert(candidate->point);
-                        createdTriangle = true;
-                        break;  // Only add one new triangle per edge
-                    }
-                }                
-            }
-
-            /*glm::vec3 rotationAxis = glm::normalize(pB->point->position - pA->point->position);
-            bool createdTriangle = false;
-            for (float i = 90; i <= 270; i += this->rotationAngle)
-            {
-                if (createdTriangle)
+                    stop = true;
                     break;
-
-                ballCenter = RotateBall(current.ballCenter, pA, pB, i);
-                std::vector<KDTreeNode*> candidates = tree->GetNeighborsOnRadius(ballCenter, radius, tolerance);
-
-                for (KDTreeNode*& candidate : candidates)
-                {
-                    if (visited.count(candidate) || candidate == pA || candidate == pB)
-                        continue;  // Skip already processed points
-
-                    // Check if the new triangle is valid
-                    if (IsTriangleValid(candidate, pA, pB, visitedTree, ballCenter))
-                    {
-                        // Form a new triangle
-                        Triangle2 newTriangle = { candidate, pA, pB, ballCenter };
-                        triangles.push_back(newTriangle.triangle);
-                        frontier.push_back(newTriangle);
-                        visited.insert(candidate);
-                        visitedTree.Insert(candidate->point);
-                        createdTriangle = true;
-                        break;  // Only add one new triangle per edge
-                    }
                 }
-            }  */
 
+                if (candidate == pA || candidate == pB)
+                    continue;  // Skip already processed points;            
+
+				if (visited2.count({ pA, candidate }) && visited2.count({ pB, candidate }))
+					continue;  
+
+                // Check if the new triangle is valid
+                if (IsTriangleValid(pA, pB, candidate, visitedTree))
+                {
+                    // Form a new triangle
+                    Triangle2 newTriangle = { pA, pB,candidate };
+                    triangles.push_back(newTriangle.triangle);
+                    //frontier2.push_back({ newTriangle.p1, newTriangle.p2 });
+
+					// Add the new edges to the frontier
+
+                    if (!visited2.count({ pA, pB }))
+                        frontier2.push_back({ pA, pB });
+
+					if (!visited2.count({ pA, candidate }))
+						frontier2.push_back({ pA, candidate });
+
+					if (!visited2.count({ pB, candidate }))
+						frontier2.push_back({ pB, candidate });
+
+                    visited.insert(candidate);
+                    visitedTree.Insert(candidate->point);
+                    visited2.insert({ pA, pB });
+                    visited2.insert({ pA, candidate });
+                    visited2.insert({ pB, candidate });
+                    stop = true;
+                    break;  // Only add one new triangle per edge
+                }
+            }
+            radius -= radiusStep;
+            tolerance = radius * 0.05;
         }
+		this->radius = this->initRadius;
+        tolerance = radius * 0.05;
     }
 }
 

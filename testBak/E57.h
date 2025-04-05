@@ -3,6 +3,9 @@
 #include <Eigen/Dense> 
 #include <unordered_set>
 #include <queue>
+#include <unordered_map>
+#include <thread>
+#include <mutex>
 
 #include "E57Point.h"
 #include "KDTree.h"
@@ -14,13 +17,17 @@ struct NormilizedPointsInfo {
 class E57
 {
 private:
+	std::mutex mutex;
 	KDTree tree;
 	std::vector<E57Point> points;
 
 	bool hasNormals;
 	int count;
 	NormilizedPointsInfo info;
-	void OrientNormals(float radius);
+	void OrientNormals(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache);
+
+	void CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeigbours);
+	//void OrientNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeigbours);
 
 public:
 	void SetUpTree();

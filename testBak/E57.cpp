@@ -1,10 +1,10 @@
 #include "E57.h"
 
-void E57::OrientNormals(float radius)
+void E57::OrientNormals(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache)
 {
     std::queue<KDTreeNode*> queue;
     std::unordered_set<KDTreeNode*> visited;
-
+    
     KDTreeNode* start = tree.GetRandomNode();
     if (!start) return;
 
@@ -17,7 +17,7 @@ void E57::OrientNormals(float radius)
 
         // Získame susedov
         //std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(node, radius);
-        std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(node, radius);
+        std::vector<KDTreeNode*> neighbors = neighborsCache[node->point];
 
         for (auto& neighbor : neighbors) {
             if (visited.find(neighbor) == visited.end()) {
@@ -29,6 +29,51 @@ void E57::OrientNormals(float radius)
                 visited.insert(neighbor);
             }
         }
+    }
+}
+
+void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeighbors)
+{
+    int size = endIndex - startIndex;
+    for (int i = startIndex; i < endIndex; i++) {
+        KDTreeNode* seedPoint = tree.FindNode(&this->points[i]);
+        if (seedPoint == nullptr)
+            continue;
+
+        if((i - startIndex) % (size / 5) == 0)
+			printf("Calculating normals on thread[%lu] %d%%\n", std::this_thread::get_id(), ((i - startIndex) * 100) / size);
+
+        //std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);
+        std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(seedPoint, numOfNeighbors);
+
+        std::unique_lock<std::mutex> lock(this->mutex);
+        neighborsCache[&this->points[i]] = neighbors;
+		lock.unlock();
+
+        if (neighbors.size() < 3)
+            continue;
+
+        glm::vec3 centroid(0.0f);
+        int neighborCount = 0;
+
+        for (auto neighbor : neighbors) {
+            centroid += neighbor->point->position;
+        }
+        centroid /= static_cast<float>(neighbors.size());
+
+        Eigen::Matrix3f covariance = Eigen::Matrix3f::Zero();
+        for (auto& neighbor : neighbors) {
+            glm::vec3 diff = neighbor->point->position - centroid;
+            Eigen::Vector3f d(diff.x, diff.y, diff.z);
+            covariance += d * d.transpose();
+        }
+        covariance /= neighbors.size();
+
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance);
+        Eigen::Vector3f normalEigen = solver.eigenvectors().col(0);
+
+        points[i].normal = glm::vec3(normalEigen.x(), normalEigen.y(), normalEigen.z());
+        points[i].hasNormal = true;
     }
 }
 
@@ -190,15 +235,14 @@ KDTree& E57::getTree()
 
 void E57::CalculateNormals()
 {
-    //float radius = 0.05f;
-    int numOfNeigbors = 10;
+    int numOfNeigbors = 30;
 
     if (hasNormals)
     {
         printf("Cloud already has normals\n");
         return;
     }
-
+    std::unordered_map<E57Point*, std::vector<KDTreeNode*>> neighborsCache;
     if(tree.GetRoot() == nullptr)
 	    SetUpTree();
     KDTreeNode* seedPoint = this->tree.GetRoot();
@@ -208,39 +252,28 @@ void E57::CalculateNormals()
 
     hasNormals = true;
 
-    for (int i = 0; i < count; i++) {
-        KDTreeNode* seedPoint = tree.FindNode(&this->points[i]);
-        if (seedPoint == nullptr)
-            continue;
+    int numThreads = std::thread::hardware_concurrency();
+    int chunkSize = count / numThreads;
 
-        //std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, radius);
-        std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(seedPoint, numOfNeigbors);
-        if (neighbors.size() < 3)
-            continue;
+    std::vector<std::thread> threads;
 
-        glm::vec3 centroid(0.0f);
-        int neighborCount = 0;
+    // Create threads to process the points in parallel
+    for (int t = 0; t < numThreads; ++t)
+    {
+        int startIdx = t * chunkSize;
+        int endIdx = (t == numThreads - 1) ? count : (startIdx + chunkSize);
 
-        for (auto neighbor : neighbors) {
-            centroid += neighbor->point->position;
-        }
-        centroid /= static_cast<float>(neighbors.size());
-
-        Eigen::Matrix3f covariance = Eigen::Matrix3f::Zero();
-        for (auto& neighbor : neighbors) {
-            glm::vec3 diff = neighbor->point->position - centroid;
-            Eigen::Vector3f d(diff.x, diff.y, diff.z);
-            covariance += d * d.transpose();
-        }
-        covariance /= neighbors.size();
-       
-        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance);
-        Eigen::Vector3f normalEigen = solver.eigenvectors().col(0);
-
-        points[i].normal = glm::vec3(normalEigen.x(), normalEigen.y(), normalEigen.z());
-        points[i].hasNormal = true;
+		threads.push_back(std::thread(&E57::CalculateNormalsThread, this, std::ref(neighborsCache), startIdx, endIdx, numOfNeigbors));
     }
-    OrientNormals(numOfNeigbors);
+
+    // Join all threads to ensure they complete before continuing
+    for (auto& t : threads)
+    {
+        t.join();
+    }
+    
+    printf("Orienting Normals\n");
+    OrientNormals(neighborsCache);
     printf("Normals calculated\n");
 }
 

@@ -204,48 +204,6 @@ std::vector<KDTreeNode*> KDTree::GetKNearestNeighbors(KDTreeNode* queryNode, int
 	return neighbors;;
 }
 
-std::vector<KDTreeNode*> KDTree::GetNeighborsWithinToroidalRadius(const glm::vec3& A, const glm::vec3& B, float radius) {
-	std::vector<KDTreeNode*> neighbors;
-
-	auto pointToSegmentDistance = [](const glm::vec3& P, const glm::vec3& A, const glm::vec3& B) -> float {
-		glm::vec3 AB = B - A;
-		glm::vec3 AP = P - A;
-		float t = glm::dot(AP, AB) / glm::dot(AB, AB);
-		t = glm::clamp(t, 0.0f, 1.0f);
-		glm::vec3 closest = A + t * AB;
-		return glm::length(P - closest);
-		};
-
-	std::function<void(KDTreeNode*, int)> searchFunc = [&](KDTreeNode* node, int depth) {
-		if (node == nullptr) return;
-
-		float dist = pointToSegmentDistance(node->point->position, A, B);
-		if (dist <= radius) {
-			neighbors.push_back(node);
-		}
-
-		int cd = depth % k;  // Splitting dimension
-		float splitValue = node->point->position[cd];
-		float minA = A[cd] - radius;
-		float maxA = A[cd] + radius;
-		float minB = B[cd] - radius;
-		float maxB = B[cd] + radius;
-
-		bool searchLeft = (splitValue >= minA && splitValue >= minB);
-		bool searchRight = (splitValue <= maxA && splitValue <= maxB);
-
-		if (searchLeft) {
-			searchFunc(node->left, depth + 1);
-		}
-		if (searchRight) {
-			searchFunc(node->right, depth + 1);
-		}
-		};
-
-	searchFunc(root, 0);
-	return neighbors;
-}
-
 std::vector<KDTreeNode*> KDTree::GetNeighborsOnRadius(glm::vec3 ballCenter, float radius, float tolerance)
 {
 	std::vector<KDTreeNode*> neighbors;
@@ -293,10 +251,18 @@ bool KDTree::ContainsPointsWithinRadiusBesidesPoints(KDTreeNode* queryNode, std:
 		float dist = glm::length(node->point->position - queryNode->point->position);
 
 		if (dist <= radius) {
+			bool differant = true;
 			for (E57Point* point : points)
 			{
-				if (point != queryNode->point)
-					return true;
+				if (point == node->point)
+				{
+					differant = false;
+					continue;
+				}
+			}
+			if (differant)
+			{
+				return true;
 			}
 		}
 

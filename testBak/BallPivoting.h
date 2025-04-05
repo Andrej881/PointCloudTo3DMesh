@@ -5,24 +5,35 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/projection.hpp>
-
+#include <functional>
 #include "KDTree.h"
 #include "ReconstructionAlgorithm.h"
 
+struct Edge {
+	KDTreeNode* a;
+	KDTreeNode* b;
+
+	Edge(KDTreeNode* a, KDTreeNode* b) 
+	{
+		this->a = a;
+		this->b = b;
+	}
+
+	bool operator==(const Edge& other) const {
+		return (a == other.a && b == other.b) || (a == other.b && b == other.a);
+	}
+};
 
 struct Triangle2 {
 	KDTreeNode* p1;
 	KDTreeNode* p2;
 	KDTreeNode* p3;
 
-	glm::vec3 ballCenter;
-
 	Triangle triangle;
-	Triangle2(KDTreeNode* p1, KDTreeNode* p2, KDTreeNode* p3, glm::vec3 ballCenter) {
+	Triangle2(KDTreeNode* p1, KDTreeNode* p2, KDTreeNode* p3) {
 		this->p1 = p1;
 		this->p2 = p2;
 		this->p3 = p3;
-		this->ballCenter = ballCenter;
 		if (p1 != nullptr && p2 != nullptr && p3 != nullptr)
 		{
 			triangle.a = *p1->point;
@@ -44,17 +55,14 @@ class BallPivoting : public ReconstructionAlgorithm
 private:
 	// Track processed points
 	float radius, initRadius, lowerRadius, tolerance; 
-	float rotationAngle; // in degrees
 
 	KDTree* tree;
 
 	Triangle2 FindInitialTriangle(std::unordered_set<KDTreeNode*>& visited, KDTree& visitedTree);
 	bool IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
-	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited, glm::vec3 ballCenter);
-	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited, glm::vec3 ballCenter);
+	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited);
+	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited);
 	bool ConsistentNormal(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
-
-	std::vector<glm::vec3> GetPossibleCenters(glm::vec3 A, glm::vec3 B, glm::vec3 midpoint, glm::vec3 C);
 
 	glm::vec3 ComputeCircumcenter(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, float& bRadius);
 	float ComputePivotingAngle(KDTreeNode* pA, KDTreeNode* pB, KDTreeNode* candidate);
@@ -62,7 +70,7 @@ private:
 
 public:
 	BallPivoting(E57* e57);
-	BallPivoting(E57* e57, float radius, float lowerRadius, float toleranceMultiplier, float rotationAngle);
+	BallPivoting(E57* e57, float radius, float lowerRadius, float toleranceMultiplier);
 
 	void SetRadius(float radius);
 	void SetLowerRadius(float radius);
