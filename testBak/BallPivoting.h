@@ -62,26 +62,24 @@ class BallPivoting : public ReconstructionAlgorithm
 {
 private:
 	// Track processed points
-	float radius, initRadius, lowerRadius, tolerance; 
+	float radius, tolerance; 
 
 	KDTree* tree;
 
-	Triangle2 FindInitialTriangle(std::unordered_set<KDTreeNode*>& visited, KDTree& visitedTree);
+	Triangle2 FindInitialTriangle();
 	bool IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
-	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited);
-	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, KDTree& visited);
+	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
+	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
 	bool ConsistentNormal(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
 
 	glm::vec3 ComputeCircumcenter(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c, float& bRadius);
 	float ComputePivotingAngle(KDTreeNode* pA, KDTreeNode* pB, KDTreeNode* candidate);
-	glm::vec3 RotateBall(glm::vec3& ballCenter, KDTreeNode* a, KDTreeNode* b, float angle);
 
 public:
 	BallPivoting(E57* e57);
-	BallPivoting(E57* e57, float radius, float lowerRadius, float toleranceMultiplier);
+	BallPivoting(E57* e57, float radius, float toleranceMultiplier);
 
 	void SetRadius(float radius);
-	void SetLowerRadius(float radius);
 
 	void Run() override;
 	void SetUp() override;

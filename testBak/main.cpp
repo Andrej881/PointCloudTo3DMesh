@@ -30,7 +30,7 @@ void FindDistancesBetweenPoints(std::vector<E57Point>& points)
 };
 
 
-e57::ustring path = "D:\\Bakalarka\\e57Files\\bunnyFloat.e57";
+e57::ustring path = "D:\\Bakalarka\\e57Files\\bunny.e57";
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
