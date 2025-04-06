@@ -54,8 +54,9 @@ glm::vec3 BallPivoting::ComputeCircumcenter(KDTreeNode* a, KDTreeNode* b, KDTree
 
 Triangle2 BallPivoting::FindInitialTriangle()
 {
-    int iterations = 1000;
+    int iterations = 10000;
     for (int i = 0; i < iterations; ++i)
+    //while(true)
     {
         //printf("finding init triangle \n");
         KDTreeNode* seedPoint = this->tree->GetRandomNode();
@@ -145,7 +146,7 @@ bool BallPivoting::ConsistentNormal(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c)
 BallPivoting::BallPivoting(E57* e57) : ReconstructionAlgorithm(e57)
 {
     this->tree = &e57->getTree();
-	this->radius = 0.02f;
+	this->radius = 0.015f;
     this->tolerance = this->radius * 0.05;
 }
 

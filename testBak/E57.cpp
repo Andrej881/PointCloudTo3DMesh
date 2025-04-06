@@ -16,7 +16,6 @@ void E57::OrientNormals(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>&
         queue.pop();
 
         // Získame susedov
-        //std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(node, radius);
         std::vector<KDTreeNode*> neighbors = neighborsCache[node->point];
 
         for (auto& neighbor : neighbors) {
@@ -34,27 +33,25 @@ void E57::OrientNormals(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>&
 
 void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeighbors)
 {
+    std::vector<std::pair<E57Point*, std::vector<KDTreeNode*>>> neighborsToCache;
     int size = endIndex - startIndex;
     for (int i = startIndex; i < endIndex; i++) {
         KDTreeNode* seedPoint = tree.FindNode(&this->points[i]);
         if (seedPoint == nullptr)
             continue;
 
-        if((i - startIndex) % (size / 5) == 0)
+        if((i - startIndex) % (size / 10) == 0)
 			printf("Calculating normals on thread[%lu] %d%%\n", std::this_thread::get_id(), ((i - startIndex) * 100) / size);
 
-        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, 0.05);
+        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, 0.03);
         //std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(seedPoint, numOfNeighbors);
 
-        std::unique_lock<std::mutex> lock(this->mutex);
-        neighborsCache[&this->points[i]] = neighbors;
-		lock.unlock();
+        neighborsToCache.push_back({ &this->points[i], neighbors });
 
         if (neighbors.size() < 3)
             continue;
 
         glm::vec3 centroid(0.0f);
-        int neighborCount = 0;
 
         for (auto neighbor : neighbors) {
             centroid += neighbor->point->position;
@@ -75,15 +72,32 @@ void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTre
         points[i].normal = glm::vec3(normalEigen.x(), normalEigen.y(), normalEigen.z());
         points[i].hasNormal = true;
     }
+
+    for (const auto& entry : neighborsToCache) {
+
+        std::unique_lock<std::mutex> lock(this->mutex);
+        neighborsCache[entry.first] = entry.second;
+		lock.unlock();
+    }
+
 }
 
 void E57::SetUpTree()
 {
-    tree.Clear();
-    for (E57Point& point : this->points)
-    {
-        tree.Insert(&point);
+	if (tree.GetRoot() != nullptr)
+		tree.Clear();
+
+    std::vector<E57Point*> pointPtrs;
+    for (E57Point& point : this->points) {
+        pointPtrs.push_back(&point); // Add pointer to point
     }
+
+    tree.InsertPoints(pointPtrs);
+
+	/*for (E57Point& point : this->points)
+	{
+		tree.Insert(&point);
+	}*/
 }
 
 E57::E57(e57::ustring path)
@@ -235,7 +249,7 @@ KDTree& E57::getTree()
 
 void E57::CalculateNormals()
 {
-    int numOfNeigbors = 5;
+    int numOfNeigbors = 15;
 
     if (hasNormals)
     {

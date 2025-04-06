@@ -40,12 +40,6 @@ struct Triangle2 {
 			triangle.b = *p2->point;
 			triangle.c = *p3->point;
 			triangle.computeNormal();
-
-			glm::vec3 triangleCenter = (triangle.a.position + triangle.b.position + triangle.c.position) / 3.0f;
-			glm::vec3 objectCenter(0);
-			glm::vec3 toOutside = triangleCenter - objectCenter;
-			if (glm::dot(triangle.normal, toOutside) < 0.0f)
-				triangle.normal = -triangle.normal;
 		}
 	}
 	bool operator==(const Triangle2& other) const {
