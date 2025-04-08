@@ -197,7 +197,9 @@ void Cubes::CreateCube(int x, int y, int z)
 	{
 		for (Triangle triangle : side.triangles)
 		{
+			std::unique_lock<std::mutex> lock(triangleMutex);
 			this->GetTriangles().push_back(triangle);
+			lock.unlock();
 		}
 	}
 }
@@ -205,7 +207,11 @@ void Cubes::CreateCube(int x, int y, int z)
 void Cubes::Run()
 {
 	this->running = true;
+
+	std::unique_lock<std::mutex> lock(triangleMutex);
 	this->GetTriangles().clear();
+	lock.unlock();
+
 	GenerateMesh();
 	this->running = this->stopEarly = false;
 }

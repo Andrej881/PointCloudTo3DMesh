@@ -139,10 +139,12 @@ void MarchingCubes::CreateTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
 	tri.computeNormal();
 
 	std::unique_lock<std::mutex> lock(this->trianglesMutex);
+	std::unique_lock<std::mutex> lock2(triangleMutex);
 
 	this->GetTriangles().push_back(tri);
 
 	lock.unlock();
+	lock2.unlock();
 }
 
 float MarchingCubes::CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index)
@@ -346,7 +348,9 @@ void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int en
 void MarchingCubes::Run()
 {
 	this->running = true;
+	std::unique_lock<std::mutex> lock(triangleMutex);
 	this->GetTriangles().clear();
+	lock.unlock();
 	GenerateMesh();
 	this->running = this->stopEarly = false;
 }

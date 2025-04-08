@@ -174,7 +174,7 @@ void Poisson::SetUp()
         tree.GetRoot() = new OctreeNode({ glm::vec3(0) }, size);
     }
     if (!e57->GetHasNormals())
-        e57->CalculateNormals();
+        e57->CalculateNormals(0.03,0);
     InitGrid();
     this->scalarField.clear();
     FillTree();

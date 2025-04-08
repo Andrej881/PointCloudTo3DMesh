@@ -21,7 +21,7 @@ myGuiImplementation::myGuiImplementation(GLFWwindow* window, E57* e57)
 
 }
 
-int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, algorithmsEnum& mesh, bool running)
+int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, algorithmsEnum& mesh, bool running, float* pointSize)
 {
     // Start ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -38,7 +38,13 @@ int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
         return OpenFileDialog();//0
     }
 
-	// Cloud/Mesh
+	//Point Size
+    ImGui::Separator();
+    int mi = 1;
+    int ma = 10;
+    ImGui::SliderFloat("Point Size", pointSize, mi, ma, "%.1f");
+
+    // Cloud/Mesh
 	ImGui::Separator();
     const char* cloudMesh = cloud ? "Show Mesh" : "Show Point Cloud";
     if (ImGui::Button(cloudMesh))
@@ -79,9 +85,34 @@ int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
         if (!canCalcNormals) {
             ImGui::BeginDisabled();
         }
-        if (ImGui::Button("Calculate Normals")) {
-            this->e->CalculateNormals(normalRadius, numNeighbours);
+        if (e->GetCalculating())
+        {
+            if (ImGui::Button("Stop")) {
+
+                printf("Stopping\n");
+                e->StopCalculatingNormals();
+                if (normalCalculating.joinable())
+                {
+                    normalCalculating.join();
+                }
+                printf("Stoped\n");
+
+            }
         }
+        else
+        {
+            if (ImGui::Button("Calculate Normals")) {
+
+                if (normalCalculating.joinable())
+                {
+                    normalCalculating.join(); 
+                }
+
+                normalCalculating = std::thread(&E57::CalculateNormals, e, normalRadius, numNeighbours);
+
+            }
+        }
+        
         if (!canCalcNormals) {
             ImGui::EndDisabled();
         }
@@ -225,4 +256,10 @@ int myGuiImplementation::OpenFileDialog()
 
 myGuiImplementation::~myGuiImplementation()
 {
+
+    e->StopCalculatingNormals();
+    if (normalCalculating.joinable())
+    {
+        normalCalculating.join();
+    }
 }

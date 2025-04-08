@@ -186,7 +186,11 @@ int counter = 0;
 void BallPivoting::Run()
 {
     this->running = true;
+
+    std::unique_lock<std::mutex> lock(triangleMutex);
     this->GetTriangles().clear();
+    lock.unlock();
+
 	std::vector<Triangle>& triangles = this->GetTriangles();
     std::unordered_set<Edge, EdgeHash> visited2;
     std::unordered_set<Triangle2, Triangle2Hash> visited3;
@@ -198,7 +202,10 @@ void BallPivoting::Run()
         this->stopEarly = this->running = false;
         return;
     }
+
+    lock = std::unique_lock<std::mutex>(triangleMutex);
     triangles.push_back(seedTriangle.triangle);
+    lock.unlock();
 
     visited2.insert({ seedTriangle.p1 ,seedTriangle.p2 });
     visited2.insert({ seedTriangle.p1 ,seedTriangle.p3 });
@@ -211,7 +218,7 @@ void BallPivoting::Run()
     std::vector<Edge> frontier2 = { {seedTriangle.p1, seedTriangle.p2} };
     frontier2.push_back({ seedTriangle.p1, seedTriangle.p3 });
     frontier2.push_back({ seedTriangle.p2, seedTriangle.p3 });
-    while (!this->stopEarly || !frontier2.empty()) 
+    while (!this->stopEarly && !frontier2.empty()) 
     {
         if (this->GetTriangles().size() % 1000 == 0)
             //printf("[mod1000] cur num of triangles %d num of trinagles in front %d\n", this->GetTriangles().size(), frontier.size());
@@ -264,7 +271,10 @@ void BallPivoting::Run()
             {
                 // Form a new triangle
                 Triangle2 newTriangle = { pA, pB,candidate };
+
+                lock = std::unique_lock<std::mutex>(triangleMutex);
                 triangles.push_back(newTriangle.triangle);
+                lock.unlock();
 
                 // Add the new edges to the frontier
                 if (!visited2.count({ pA, pB }))
@@ -292,7 +302,7 @@ void BallPivoting::Run()
 void BallPivoting::SetUp()
 {
     if(!e57->GetHasNormals())
-        e57->CalculateNormals();
+        e57->CalculateNormals(radius,0);
     if (tree->GetRoot() == nullptr)
         e57->SetUpTree();
 }

@@ -34,6 +34,8 @@ public:
 	void Stop();
 	void ChangeParams(float* args);
 
+	std::mutex* GetTriangleMutex();
+
 	bool getRunning();
 
 	algorithmsEnum GetActiveAlgorithm();

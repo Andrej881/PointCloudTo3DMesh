@@ -109,6 +109,14 @@ void AlgorithmControl::ChangeParams(float* args)
 	}
 }
 
+std::mutex* AlgorithmControl::GetTriangleMutex()
+{
+	if (this->activeAlgorithm)
+		return &this->activeAlgorithm->GetTriangleMutex();
+
+	return nullptr;
+}
+
 bool AlgorithmControl::getRunning()
 {
 	if (this->activeAlgorithm)

@@ -13,6 +13,11 @@ void ReconstructionAlgorithm::Stop()
 	this->stopEarly = true;
 }
 
+std::mutex& ReconstructionAlgorithm::GetTriangleMutex()
+{
+	return this->triangleMutex;
+}
+
 std::vector<Triangle>& ReconstructionAlgorithm::GetTriangles()
 {
     return this->triangles;

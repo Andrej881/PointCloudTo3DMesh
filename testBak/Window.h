@@ -13,6 +13,7 @@
 #include "Camera.h"
 
 #include "AlgorithmControl.h"
+#include <chrono>
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -29,9 +30,12 @@ private:
 	float rotations[3];
 	bool renderMesh;
 	bool refresh;
+	float pointSize;
 
 	std::thread meshCalculating;
-	std::thread normalCalculating;
+
+	std::chrono::steady_clock::time_point lastRefreshTime;
+	const std::chrono::milliseconds refreshInterval{ 1000 };
 public:
 
 	bool isCursorDisabled();

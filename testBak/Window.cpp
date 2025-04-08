@@ -18,6 +18,7 @@ Window::Window(unsigned int width, unsigned int height)
     this->cursorDisabled = true;
     this->width = width;
     this->height = height;
+    this->pointSize = 1.0f;
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -117,7 +118,7 @@ void Window::LoadMeshToGPU(AlgorithmControl& algorithmsEnum)
 {
     this->renderMesh = true;
 	std::vector<Triangle>& triangles = algorithmsEnum.GetTriangles();
-    printf("num of triangles: %d\n", triangles.size());
+    //printf("num of triangles: %d\n", triangles.size());
     std::vector<float> data;
     for (Triangle triangle : triangles)
     {
@@ -206,7 +207,8 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
 
     glBindVertexArray(VAO);
 
-    glPointSize(5.0f);
+    glPointSize(this->pointSize);
+
     if (this->renderMesh)
         glDrawArrays(GL_TRIANGLES, 0, algorithms.GetTriangles().size() * 3 * 2);    
     else
@@ -219,18 +221,28 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
 
     if (refresh)
     {
-        refresh = false;
-        if (this->renderMesh)
+        auto now = std::chrono::steady_clock::now();
+        if (now - lastRefreshTime >= refreshInterval)
         {
-            this->LoadPointCloudToGPU(*gui.e);
-        }
-        else
-        {
-            this->LoadMeshToGPU(algorithms);
+            lastRefreshTime = now;
+            if (this->renderMesh)
+            {
+                if (algorithms.GetTriangleMutex() != nullptr)
+                {
+                    std::unique_lock<std::mutex> lock(*algorithms.GetTriangleMutex());
+                    this->LoadMeshToGPU(algorithms);
+                    lock.unlock();
+                }
+            }
+            else
+            {
+                this->LoadPointCloudToGPU(*gui.e);
+            }
         }
     }
 
-    auto result = gui.Render(rotations, !this->renderMesh, args, algEnum, running);
+    auto result = gui.Render(rotations, !this->renderMesh, args, algEnum, running, &this->pointSize);
+    
     switch (result)
     {
     case 0:
@@ -286,11 +298,7 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
 }
 
 Window::~Window()
-{
-    if (normalCalculating.joinable())
-    {
-        normalCalculating.join();
-    }
+{    
     if (meshCalculating.joinable())
     {
         meshCalculating.join(); 
