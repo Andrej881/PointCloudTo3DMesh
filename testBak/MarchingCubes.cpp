@@ -332,6 +332,8 @@ void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int en
 		{
 			for (int i3 = startZ; i3 < endZ; ++i3)
 			{
+				if (this->stopEarly)
+					return;
 				if (this->grid[i1][i2][i3])
 				{
 					GenerateCubeMesh(i1, i2, i3);
@@ -343,8 +345,10 @@ void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int en
 
 void MarchingCubes::Run()
 {
+	this->running = true;
 	this->GetTriangles().clear();
 	GenerateMesh();
+	this->running = this->stopEarly = false;
 }
 
 void MarchingCubes::SetUp()

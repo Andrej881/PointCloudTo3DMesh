@@ -26,7 +26,7 @@ private:
 	NormilizedPointsInfo info;
 	void OrientNormals(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache);
 
-	void CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeigbours);
+	void CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeigbours, float radius);
 	//void OrientNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeigbours);
 
 public:
@@ -38,6 +38,7 @@ public:
 	KDTree& getTree();
 
 	void CalculateNormals();
+	void CalculateNormals(float radius, int numOfNeigbors);
 	bool GetHasNormals();
 
 	int getCount();

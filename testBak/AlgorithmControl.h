@@ -5,16 +5,18 @@
 #include "BallPivoting.h"
 #include "Poisson.h"
 
-enum algorithms {
-	CUBES, MARCHING_CUBES, BALL_PIVOTING, POISSON
+enum algorithmsEnum {
+	CUBES, MARCHING_CUBES, BALL_PIVOTING, POISSON, NONE
 };
 
 class AlgorithmControl
 {
 private:
+	std::vector<Triangle> emptyVector;
+
 	E57* e57;
 
-	algorithms active;
+	algorithmsEnum active;
 
 	Cubes cubes;
 	MarchingCubes marchinCubes;
@@ -24,12 +26,17 @@ private:
 	ReconstructionAlgorithm* activeAlgorithm;
 public:
 	AlgorithmControl(E57* e);
-	AlgorithmControl(E57* e, algorithms starting);
+	AlgorithmControl(E57* e, algorithmsEnum starting);
 
 	void Run();
-	void ChangeAlgorithm(algorithms a);
+	void ChangeAlgorithm(algorithmsEnum a);
 	void SetUp();
+	void Stop();
+	void ChangeParams(float* args);
 
+	bool getRunning();
+
+	algorithmsEnum GetActiveAlgorithm();
 	std::vector<Triangle>& GetTriangles();
 
 	~AlgorithmControl();

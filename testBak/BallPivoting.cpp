@@ -54,7 +54,7 @@ glm::vec3 BallPivoting::ComputeCircumcenter(KDTreeNode* a, KDTreeNode* b, KDTree
 
 Triangle2 BallPivoting::FindInitialTriangle()
 {
-    int iterations = 10000;
+    int iterations = 1000;
     for (int i = 0; i < iterations; ++i)
     //while(true)
     {
@@ -64,6 +64,8 @@ Triangle2 BallPivoting::FindInitialTriangle()
         std::vector<KDTreeNode*> neighbors = tree->GetNeighborsWithinRadius(seedPoint, 2 * radius);
         for (KDTreeNode* neighbor : neighbors)
         {
+            if(this->stopEarly)
+				return { nullptr, nullptr, nullptr };
             if (neighbor == seedPoint)
                 continue;
             for (KDTreeNode* neighbor2 : neighbors)
@@ -183,6 +185,7 @@ struct Triangle2Hash
 int counter = 0;
 void BallPivoting::Run()
 {
+    this->running = true;
     this->GetTriangles().clear();
 	std::vector<Triangle>& triangles = this->GetTriangles();
     std::unordered_set<Edge, EdgeHash> visited2;
@@ -191,7 +194,10 @@ void BallPivoting::Run()
     // Step 1: Find the initial seed triangle
     Triangle2 seedTriangle = FindInitialTriangle();
     if (seedTriangle.p1 == nullptr || seedTriangle.p2 == nullptr || seedTriangle.p3 == nullptr)
+    {
+        this->stopEarly = this->running = false;
         return;
+    }
     triangles.push_back(seedTriangle.triangle);
 
     visited2.insert({ seedTriangle.p1 ,seedTriangle.p2 });
@@ -205,7 +211,7 @@ void BallPivoting::Run()
     std::vector<Edge> frontier2 = { {seedTriangle.p1, seedTriangle.p2} };
     frontier2.push_back({ seedTriangle.p1, seedTriangle.p3 });
     frontier2.push_back({ seedTriangle.p2, seedTriangle.p3 });
-    while (!frontier2.empty()) 
+    while (!this->stopEarly || !frontier2.empty()) 
     {
         if (this->GetTriangles().size() % 1000 == 0)
             //printf("[mod1000] cur num of triangles %d num of trinagles in front %d\n", this->GetTriangles().size(), frontier.size());
@@ -280,6 +286,7 @@ void BallPivoting::Run()
             }
         }
     }
+    this->running = this->stopEarly = false;
 }
 
 void BallPivoting::SetUp()
@@ -289,7 +296,6 @@ void BallPivoting::SetUp()
     if (tree->GetRoot() == nullptr)
         e57->SetUpTree();
 }
-
 float BallPivoting::ComputePivotingAngle(KDTreeNode* pA, KDTreeNode* pB, KDTreeNode* candidate)
 {
     glm::vec3 edge = glm::normalize(pB->point->position - pA->point->position);

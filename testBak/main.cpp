@@ -5,6 +5,7 @@
 
 #include "AlgorithmControl.h"
 
+
 void FindDistancesBetweenPoints(std::vector<E57Point>& points)
 {
     float min = FLT_MAX, max = FLT_MIN, average = 0;
@@ -45,32 +46,21 @@ Window win(1080, 720);
 int main() {
     srand(time(NULL));
     E57 e57(path);
-	
-    /*clock_t begin = clock();
 
-	e57.CalculateNormals();
-
-	clock_t end = clock();
-	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-	printf("Time to calculate normals: %f\n", elapsed_secs);*/
-	//FindDistancesBetweenPoints(e57.getPoints());
-
-	AlgorithmControl algorithms(&e57, BALL_PIVOTING);
-
+	AlgorithmControl algorithms(&e57);
     myGuiImplementation gui(win.getWindow(), &e57);    
 
-    //Cubes cubes(0.01, 0, e57);
-    //printf("Num of cubes: %d num of triangles: %d\n", cubes.getCubes().size(), cubes.numOfTriangels);
     if (e57.getCount() <= 0)
     {
         return -1;
     }
 
     win.setPointCount(e57.getCount());
-	win.LoadMeshToGPU(algorithms);
+	win.LoadPointCloudToGPU(e57);
     win.setCallBacks(mouse_callback, scroll_callback);
     Shader shader;
     GLuint shaderProgram = shader.createShaderProgram();
+
     while (!glfwWindowShouldClose(win.getWindow()))
     {
         float currentFrame = glfwGetTime();
@@ -79,10 +69,8 @@ int main() {
 
         shader.use();
         win.ProcessInput(deltaTime, camera);
-        win.Render(shader, camera, gui, algorithms);
+        win.Render(shader, camera, gui, algorithms);        
     }
-    glfwTerminate();
-
     return 0;
 }
 

@@ -1,10 +1,13 @@
 #include "AlgorithmControl.h"
 
 AlgorithmControl::AlgorithmControl(E57* e):e57(e), cubes(e), marchinCubes(e), bp(e),poisson(e), activeAlgorithm(nullptr)
-{}
-
-AlgorithmControl::AlgorithmControl(E57 * e, algorithms starting) :e57(e), cubes(e), marchinCubes(e), bp(e), poisson(e)
 {
+	this->emptyVector = std::vector<Triangle>();
+}
+
+AlgorithmControl::AlgorithmControl(E57 * e, algorithmsEnum starting) :e57(e), cubes(e), marchinCubes(e), bp(e), poisson(e)
+{
+	this->emptyVector = std::vector<Triangle>();
 	this->active = starting;
 	switch (starting)
 	{
@@ -31,7 +34,7 @@ void AlgorithmControl::Run()
 		this->activeAlgorithm->Run();
 }
 
-void AlgorithmControl::ChangeAlgorithm(algorithms a)
+void AlgorithmControl::ChangeAlgorithm(algorithmsEnum a)
 {
 	if (this->active == a)	
 		return;
@@ -61,13 +64,70 @@ void AlgorithmControl::SetUp()
 		this->activeAlgorithm->SetUp();
 }
 
+void AlgorithmControl::Stop()
+{
+	if (this->activeAlgorithm)
+		this->activeAlgorithm->Stop();
+}
+
+void AlgorithmControl::ChangeParams(float* args)
+{		
+	switch (this->active)
+	{
+	case CUBES:
+	{
+		// margin, voxelSize;
+		float margin = args[0];
+		float voxelSize = args[1];
+
+		this->cubes.SetMargin(margin);
+		this->cubes.SetVoxelSize(voxelSize);
+		break;
+	}
+	case MARCHING_CUBES:
+	{
+		// isolevel, voxelSize;
+		float isolevel = args[0];
+		float voxelSize = args[1];
+
+		this->marchinCubes.SetIsoLevel(isolevel);
+		this->marchinCubes.SetVoxelSize(voxelSize);
+		break;
+	}
+	case BALL_PIVOTING:
+	{
+		// radius;
+		float radius = args[0];
+
+		this->bp.SetRadius(radius);
+		break;
+	}		
+	case POISSON:
+	{
+		break;
+	}
+	}
+}
+
+bool AlgorithmControl::getRunning()
+{
+	if (this->activeAlgorithm)
+		return this->activeAlgorithm->getRunning();
+
+	return false;
+}
+
+algorithmsEnum AlgorithmControl::GetActiveAlgorithm()
+{
+	return this->active;
+}
+
 std::vector<Triangle>& AlgorithmControl::GetTriangles()
 {
 	if (this->activeAlgorithm)
 		return this->activeAlgorithm->GetTriangles();
-	else 
-		return cubes.GetTriangles();
-		
+
+	return emptyVector;		
 }
 
 AlgorithmControl::~AlgorithmControl()

@@ -92,6 +92,8 @@ void Cubes::GenerateMesh()
 		{
 			for (int i3 = 0; i3 < this->voxelsInDimZ; i3++)
 			{
+				if (this->stopEarly)
+					return;
 				if (this->grid[i1][i2][i3]) 
 				{
 					CreateCube(i1, i2, i3);					
@@ -202,8 +204,10 @@ void Cubes::CreateCube(int x, int y, int z)
 
 void Cubes::Run()
 {
+	this->running = true;
 	this->GetTriangles().clear();
 	GenerateMesh();
+	this->running = this->stopEarly = false;
 }
 
 void Cubes::SetUp()

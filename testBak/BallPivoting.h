@@ -77,6 +77,7 @@ public:
 
 	void Run() override;
 	void SetUp() override;
+
 	~BallPivoting();
 };
 

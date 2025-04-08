@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <vector>
+#include <thread>
 
 #include "myGuiImplemnetation.h"
 
@@ -27,6 +28,10 @@ private:
 	bool cursorDisabled, cPressed;
 	float rotations[3];
 	bool renderMesh;
+	bool refresh;
+
+	std::thread meshCalculating;
+	std::thread normalCalculating;
 public:
 
 	bool isCursorDisabled();
@@ -35,10 +40,10 @@ public:
 	void ProcessInput(float deltaTime, Camera& camera);
 	Window(unsigned int width, unsigned int height);
 	void setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll);
-	void Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui, AlgorithmControl& algorithms);
+	void Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui, AlgorithmControl& algorithmsEnum);
 	GLFWwindow* getWindow();
 	void LoadPointCloudToGPU(E57 & e57);
-	void LoadMeshToGPU(AlgorithmControl& algorithms);
+	void LoadMeshToGPU(AlgorithmControl& algorithmsEnum);
 
 	~Window();
 };

@@ -31,20 +31,21 @@ void E57::OrientNormals(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>&
     }
 }
 
-void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeighbors)
+void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTreeNode*>>& neighborsCache, int startIndex, int endIndex, int numOfNeigbours, float radius)
 {
     std::vector<std::pair<E57Point*, std::vector<KDTreeNode*>>> neighborsToCache;
     int size = endIndex - startIndex;
     for (int i = startIndex; i < endIndex; i++) {
-        KDTreeNode* seedPoint = tree.FindNode(&this->points[i]);
-        if (seedPoint == nullptr)
-            continue;
+        KDTreeNode seedPoint = { &this->points[i], nullptr, nullptr, nullptr };
 
-        if((i - startIndex) % (size / 10) == 0)
-			printf("Calculating normals on thread[%lu] %d%%\n", std::this_thread::get_id(), ((i - startIndex) * 100) / size);
+        if ((i - startIndex) % (size / 10) == 0)
+            printf("Calculating normals on thread[%lu] %d%%\n", std::this_thread::get_id(), ((i - startIndex) * 100) / size);
 
-        std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(seedPoint, 0.03);
-        //std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(seedPoint, numOfNeighbors);
+        std::vector<KDTreeNode*> neighbors;
+        if(radius > 0)
+            std::vector<KDTreeNode*> neighbors = tree.GetNeighborsWithinRadius(&seedPoint, radius);
+        if(numOfNeigbours > 0)
+            std::vector<KDTreeNode*> neighbors = tree.GetKNearestNeighbors(&seedPoint, numOfNeigbours);
 
         neighborsToCache.push_back({ &this->points[i], neighbors });
 
@@ -77,9 +78,8 @@ void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTre
 
         std::unique_lock<std::mutex> lock(this->mutex);
         neighborsCache[entry.first] = entry.second;
-		lock.unlock();
+        lock.unlock();
     }
-
 }
 
 void E57::SetUpTree()
@@ -249,12 +249,12 @@ KDTree& E57::getTree()
 
 void E57::CalculateNormals()
 {
-    int numOfNeigbors = 15;
+    int numOfNeigbors = 0;
+    float radius = 0.03f;
 
     if (hasNormals)
     {
-        printf("Cloud already has normals\n");
-        return;
+        hasNormals = false;        
     }
     std::unordered_map<E57Point*, std::vector<KDTreeNode*>> neighborsCache;
     if(tree.GetRoot() == nullptr)
@@ -264,7 +264,6 @@ void E57::CalculateNormals()
         throw std::runtime_error("Point cloud is empty!");
     }
 
-    hasNormals = true;
 
     int numThreads = std::thread::hardware_concurrency();
     int chunkSize = count / numThreads;
@@ -277,7 +276,7 @@ void E57::CalculateNormals()
         int startIdx = t * chunkSize;
         int endIdx = (t == numThreads - 1) ? count : (startIdx + chunkSize);
 
-		threads.push_back(std::thread(&E57::CalculateNormalsThread, this, std::ref(neighborsCache), startIdx, endIdx, numOfNeigbors));
+		threads.push_back(std::thread(&E57::CalculateNormalsThread, this, std::ref(neighborsCache), startIdx, endIdx, numOfNeigbors, radius));
     }
 
     // Join all threads to ensure they complete before continuing
@@ -288,6 +287,48 @@ void E57::CalculateNormals()
     
     printf("Orienting Normals\n");
     OrientNormals(neighborsCache);
+    hasNormals = true;
+    printf("Normals calculated\n");
+}
+
+void E57::CalculateNormals(float radius, int numOfNeigbors)
+{
+    if (hasNormals)
+    {
+        hasNormals = false;
+    }
+    std::unordered_map<E57Point*, std::vector<KDTreeNode*>> neighborsCache;
+    if (tree.GetRoot() == nullptr)
+        SetUpTree();
+    KDTreeNode* seedPoint = this->tree.GetRoot();
+    if (!seedPoint) {
+        throw std::runtime_error("Point cloud is empty!");
+    }
+
+
+    int numThreads = std::thread::hardware_concurrency();
+    int chunkSize = count / numThreads;
+
+    std::vector<std::thread> threads;
+
+    // Create threads to process the points in parallel
+    for (int t = 0; t < numThreads; ++t)
+    {
+        int startIdx = t * chunkSize;
+        int endIdx = (t == numThreads - 1) ? count : (startIdx + chunkSize);
+
+        threads.push_back(std::thread(&E57::CalculateNormalsThread, this, std::ref(neighborsCache), startIdx, endIdx, numOfNeigbors, radius));
+    }
+
+    // Join all threads to ensure they complete before continuing
+    for (auto& t : threads)
+    {
+        t.join();
+    }
+
+    printf("Orienting Normals\n");
+    OrientNormals(neighborsCache);
+    hasNormals = true;
     printf("Normals calculated\n");
 }
 

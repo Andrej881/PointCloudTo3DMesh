@@ -12,11 +12,13 @@ void Window::setPointCount(int count)
 
 Window::Window(unsigned int width, unsigned int height)
 {
+    this->refresh = false;
     this->renderMesh = false;
     this->cPressed = false;
     this->cursorDisabled = true;
     this->width = width;
     this->height = height;
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -111,10 +113,10 @@ void Window::LoadPointCloudToGPU(E57& e57) {
 
 }
 
-void Window::LoadMeshToGPU(AlgorithmControl& algorithms)
+void Window::LoadMeshToGPU(AlgorithmControl& algorithmsEnum)
 {
     this->renderMesh = true;
-	std::vector<Triangle>& triangles = algorithms.GetTriangles();
+	std::vector<Triangle>& triangles = algorithmsEnum.GetTriangles();
     printf("num of triangles: %d\n", triangles.size());
     std::vector<float> data;
     for (Triangle triangle : triangles)
@@ -166,7 +168,6 @@ void Window::setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll)
     glfwSetCursorPosCallback(window, mouse);
     glfwSetScrollCallback(window, scroll);
 }
-
 void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui, AlgorithmControl& algorithms)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -212,22 +213,34 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
         glDrawArrays(GL_POINTS, 0, pointCount*2);
     glBindVertexArray(0);
     
-    auto result = gui.Render(rotations);
-    if (result == 0)
+    algorithmsEnum algEnum = algorithms.GetActiveAlgorithm();
+    bool running = algorithms.getRunning();
+    float* args = new float[3];
+
+    if (refresh)
     {
-        algorithms.SetUp();
-        algorithms.Run();
+        refresh = false;
         if (this->renderMesh)
-        {
-            this->LoadMeshToGPU(algorithms);
-        }
-        else
         {
             this->LoadPointCloudToGPU(*gui.e);
         }
-        this->setPointCount(gui.e->getCount());
+        else
+        {
+            this->LoadMeshToGPU(algorithms);
+        }
     }
-    if (result == -10)
+
+    auto result = gui.Render(rotations, !this->renderMesh, args, algEnum, running);
+    switch (result)
+    {
+    case 0:
+    {
+        this->renderMesh = false;
+        this->LoadPointCloudToGPU(*gui.e);
+        this->setPointCount(gui.e->getCount());
+        break;
+    }
+    case 1:
     {
         if (this->renderMesh)
         {
@@ -236,15 +249,52 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
         }
         else
         {
+            this->renderMesh = true;
             this->LoadMeshToGPU(algorithms);
         }
+        break;
     }
+    case 2:
+    {
+        if (meshCalculating.joinable())
+        {
+            meshCalculating.join(); // Wait for the previous thread to finish
+        }
+
+		algorithms.ChangeAlgorithm(algEnum);
+        algorithms.ChangeParams(args);
+        algorithms.SetUp();
+		meshCalculating = std::thread(&AlgorithmControl::Run, &algorithms);
+        break;
+    }
+    case 3:
+    {
+        algorithms.Stop();
+        printf("STOPPING\n");
+        if (meshCalculating.joinable())
+        {
+            meshCalculating.join(); // Wait for the previous thread to finish
+        }
+        printf("STOPED\n");
+        break;
+    }
+    }
+
+    delete[] args;
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
 
 Window::~Window()
 {
+    if (normalCalculating.joinable())
+    {
+        normalCalculating.join();
+    }
+    if (meshCalculating.joinable())
+    {
+        meshCalculating.join(); 
+    }
     glfwTerminate();
 }
 

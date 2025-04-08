@@ -2,6 +2,12 @@
 //https://github.com/ocornut/imgui/wiki/Getting-Started
 
 #include "myGuiImplemnetation.h"
+void myGuiImplementation::EndRender()
+{
+    ImGui::End();
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
 myGuiImplementation::myGuiImplementation(GLFWwindow* window, E57* e57)
 {
     e = e57;
@@ -15,7 +21,7 @@ myGuiImplementation::myGuiImplementation(GLFWwindow* window, E57* e57)
 
 }
 
-int myGuiImplementation::Render(float* rotations)
+int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, algorithmsEnum& mesh, bool running)
 {
     // Start ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -23,28 +29,176 @@ int myGuiImplementation::Render(float* rotations)
     ImGui::NewFrame();
 
     // UI Window
-    ImGui::Begin("Options");
+    ImGui::Begin("Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    // Load File
     if (ImGui::Button("Load File"))
     {
-        ImGui::End();
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        return OpenFileDialog();
+        EndRender();
+        return OpenFileDialog();//0
     }
-    bool change = ImGui::Button("Cloud/Mesh");
-    int min = -180;
-    int max = 180;
-    ImGui::SliderFloat("Rotation X", &rotations[0], min, max, "%.1f");
-    ImGui::SliderFloat("Rotation Y", &rotations[1], min, max, "%.1f");
-    ImGui::SliderFloat("Rotation Z", &rotations[2], min, max, "%.1f");
-    ImGui::End();
-    // Render ImGui
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    if (change)
-        return -10;
-    return 1;
+
+	// Cloud/Mesh
+	ImGui::Separator();
+    const char* cloudMesh = cloud ? "Show Mesh" : "Show Point Cloud";
+    if (ImGui::Button(cloudMesh))
+    {
+        EndRender();
+        return 1;
+    }
+
+    // Rotation
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Rotation")) 
+    {
+        int min = -180;
+        int max = 180;
+        ImGui::SliderFloat3("Rotation", rotations, min, max, "%.1f");
+    }
+
+    // Normals
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Normals")) 
+    {
+        if (e->GetHasNormals())
+		{
+			ImGui::Text("Normals are already calculated");
+			ImGui::Text("You can recalculate them");
+		}
+		else
+		{
+			ImGui::Text("Normals are not calculated");
+        }
+        static int numNeighbours = 0;
+        ImGui::InputInt("Neighbours", &numNeighbours);
+
+        static float normalRadius = 0.03f;
+        ImGui::InputFloat("Radius", &normalRadius);
+
+        bool canCalcNormals = (numNeighbours > 0 || normalRadius > 0) && (numNeighbours * normalRadius) <= 0;
+        if (!canCalcNormals) {
+            ImGui::BeginDisabled();
+        }
+        if (ImGui::Button("Calculate Normals")) {
+            this->e->CalculateNormals(normalRadius, numNeighbours);
+        }
+        if (!canCalcNormals) {
+            ImGui::EndDisabled();
+        }
+    }
+
+    // Mesh
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Mesh")) {
+		static bool stop = false;
+        if (ImGui::TreeNode("Cubes")) {
+            static int cubeMargin = 0;
+            ImGui::InputInt("Cube Margin", &cubeMargin);
+
+            static float voxelSize = 0.01f;
+            ImGui::InputFloat("Voxel Size", &voxelSize);
+
+            if (!running)
+            {
+                if (ImGui::Button( "Start Cubes")) {
+                    mesh = CUBES;
+                    meshArgs[0] = (float)cubeMargin;
+                    meshArgs[1] = voxelSize;
+
+                    ImGui::TreePop();
+                    EndRender();
+                    return 2;
+                }
+			}
+			else
+			{
+				if (ImGui::Button("Stop Cubes")) {
+                    stop = true;
+				}
+			}            
+
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Marching Cubes")) {
+            static float isoLevel = 0.02f;
+            ImGui::InputFloat("IsoLevel", &isoLevel);
+
+            static float mcVoxelSize = 0.01f;
+            ImGui::InputFloat("MC VoxelSize", &mcVoxelSize);
+
+            if (!running)
+            {
+                if (ImGui::Button("Start MC")) {
+                    mesh = MARCHING_CUBES;
+                    meshArgs[0] = isoLevel;
+                    meshArgs[1] = mcVoxelSize;
+
+
+                    ImGui::TreePop();
+                    EndRender();
+                    return 2;
+                }
+            }
+            else
+            {
+                if (ImGui::Button("Stop MC")) {
+                    stop = true;
+                }
+            }
+
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Ball Pivoting")) {
+            static float bpRadius = 1.0f;
+            ImGui::InputFloat("BP Radius", &bpRadius);
+
+            if (!running)
+            {
+                if (ImGui::Button("Start BP")) {
+                    mesh = BALL_PIVOTING;
+                    meshArgs[0] = bpRadius;
+
+                    ImGui::TreePop();
+                    EndRender();
+                    return 2;
+                }
+            }
+            else
+            {
+                if (ImGui::Button("Stop BP")) {
+                    stop = true;
+                }
+            }
+
+            ImGui::TreePop();
+        }
+
+        // Global Stop
+        ImGui::Separator();
+        if (!running) {
+            ImGui::BeginDisabled();
+        }
+        if (ImGui::Button("Stop")) {
+			stop = true;
+        }
+        if (!running) {
+            ImGui::EndDisabled();
+        }
+
+        if (stop)
+        {
+            stop = !stop;
+            EndRender();
+            return 3;
+        }
+    }
+
+    EndRender();
+    return -10;
 }
+
 //https://github.com/btzy/nativefiledialog-extended
 int myGuiImplementation::OpenFileDialog()
 {
