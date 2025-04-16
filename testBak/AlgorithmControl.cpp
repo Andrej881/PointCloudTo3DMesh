@@ -5,7 +5,7 @@ AlgorithmControl::AlgorithmControl(E57* e):e57(e), cubes(e), marchinCubes(e), bp
 	this->emptyVector = std::vector<Triangle>();
 }
 
-AlgorithmControl::AlgorithmControl(E57 * e, algorithmsEnum starting) :e57(e), cubes(e), marchinCubes(e), bp(e), poisson(e)
+AlgorithmControl::AlgorithmControl(E57 * e, AlgorithmsEnum starting) :e57(e), cubes(e), marchinCubes(e), bp(e), poisson(e)
 {
 	this->emptyVector = std::vector<Triangle>();
 	this->active = starting;
@@ -34,7 +34,7 @@ void AlgorithmControl::Run()
 		this->activeAlgorithm->Run();
 }
 
-void AlgorithmControl::ChangeAlgorithm(algorithmsEnum a)
+void AlgorithmControl::ChangeAlgorithm(AlgorithmsEnum a)
 {
 	if (this->active == a)	
 		return;
@@ -125,7 +125,7 @@ bool AlgorithmControl::getRunning()
 	return false;
 }
 
-algorithmsEnum AlgorithmControl::GetActiveAlgorithm()
+AlgorithmsEnum AlgorithmControl::GetActiveAlgorithm()
 {
 	return this->active;
 }

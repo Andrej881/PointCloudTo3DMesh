@@ -15,16 +15,16 @@
 
 #include "AlgorithmControl.h"
 
-class myGuiImplementation
+class MyGuiImplementation
 {
 private:
 	void EndRender();
 	std::thread normalCalculating;
+	int OpenFileDialog(bool allPoints);
 public:
 	E57* e;
-	myGuiImplementation(GLFWwindow* window,E57* e57);
-	int Render(float* rotations, bool cloud, float*& meshArgs, algorithmsEnum& mesh, bool running, float* pointSize);
-	int OpenFileDialog();
-	~myGuiImplementation();
+	MyGuiImplementation(GLFWwindow* window,E57* e57);
+	int Render(float* rotations, bool cloud, float*& meshArgs, AlgorithmsEnum& mesh, bool running, float* pointSize, bool& refresh, int& refreshTimes);
+	~MyGuiImplementation();
 };
 

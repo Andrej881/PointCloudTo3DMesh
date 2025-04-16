@@ -17,7 +17,7 @@ struct Triangle
 			normal.x = (a.normal.x + b.normal.x + c.normal.x) / 3.0f;
 			normal.y = (a.normal.y + b.normal.y + c.normal.y) / 3.0f;
 			normal.z = (a.normal.z + b.normal.z + c.normal.z) / 3.0f;
-
+			normal = glm::normalize(normal);
 			return;
 		}
 		auto u = b.position - a.position;

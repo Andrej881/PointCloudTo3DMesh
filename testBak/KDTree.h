@@ -27,14 +27,15 @@ private:
 	int maxDepth = 0;
 	int size = 0;
 
-	void InsertNode(KDTreeNode*& node, KDTreeNode* newNode, int depth);
+	void InsertNode(KDTreeNode*& node, KDTreeNode* newNode);
 	KDTreeNode* BuildBalanced(std::vector<E57Point*>& points, int depth);
 public:
 	KDTree();
-	std::vector<KDTreeNode*> GetNeighborsWithinRadius(KDTreeNode* queryNode, float radius);
-	std::vector<KDTreeNode*> GetKNearestNeighbors(KDTreeNode* queryNode, int k);
+
+	std::vector<KDTreeNode*> GetNeighborsWithinRadius(glm::vec3 position, float radius);
+	std::vector<KDTreeNode*> GetKNearestNeighbors(glm::vec3 position, int k);
 	std::vector<KDTreeNode*> GetNeighborsOnRadius(glm::vec3 ballCenter,  float radius, float tolerance);
-	bool ContainsPointsWithinRadiusBesidesPoints(KDTreeNode* queryNode, std::vector<E57Point*>& points, float radius);
+	bool ContainsPointsWithinRadiusBesidesPoints(glm::vec3 position, std::unordered_set<E57Point*>& points, float radius);
 	void DeleteNode(KDTreeNode *& node);
 	void Insert(E57Point* point);
 	void InsertPoints(std::vector<E57Point*>& points);

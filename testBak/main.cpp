@@ -48,7 +48,7 @@ int main() {
     E57 e57(path);
 
 	AlgorithmControl algorithms(&e57);
-    myGuiImplementation gui(win.getWindow(), &e57);    
+    MyGuiImplementation gui(win.getWindow(), &e57);    
 
     if (e57.getCount() <= 0)
     {
@@ -69,7 +69,7 @@ int main() {
 
         shader.use();
         win.ProcessInput(deltaTime, camera);
-        win.Render(shader, camera, gui, algorithms);        
+        win.Render(deltaTime ,shader, camera, gui, algorithms);        
     }
     return 0;
 }

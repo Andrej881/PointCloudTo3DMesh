@@ -30,6 +30,9 @@ private:
 	int voxelsInDimX, voxelsInDimY, voxelsInDimZ;
 	std::vector<std::vector<std::vector<bool>>> grid;
 
+	void SetGridInRange(int startIdx, int endIdx);
+	void GenerateMeshInRange(int startX, int endX, int startY, int endY, int startZ, int endZ);
+
 	void GenerateMesh();
 	void CreateCube(int x, int y, int z);
 	void InitGrid();

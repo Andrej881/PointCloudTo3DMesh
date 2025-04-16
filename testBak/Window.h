@@ -13,7 +13,6 @@
 #include "Camera.h"
 
 #include "AlgorithmControl.h"
-#include <chrono>
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -34,8 +33,8 @@ private:
 
 	std::thread meshCalculating;
 
-	std::chrono::steady_clock::time_point lastRefreshTime;
-	const std::chrono::milliseconds refreshInterval{ 1000 };
+	float timeToRefresh = 0;
+	int refreshTimePerSec = 60;
 public:
 
 	bool isCursorDisabled();
@@ -44,10 +43,10 @@ public:
 	void ProcessInput(float deltaTime, Camera& camera);
 	Window(unsigned int width, unsigned int height);
 	void setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll);
-	void Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui, AlgorithmControl& algorithmsEnum);
+	void Render(float deltaTime, Shader& ourShader, Camera& camera, MyGuiImplementation& gui, AlgorithmControl& AlgorithmsEnum);
 	GLFWwindow* getWindow();
 	void LoadPointCloudToGPU(E57 & e57);
-	void LoadMeshToGPU(AlgorithmControl& algorithmsEnum);
+	void LoadMeshToGPU(AlgorithmControl& AlgorithmsEnum);
 
 	~Window();
 };

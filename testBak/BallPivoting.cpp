@@ -6,7 +6,7 @@ bool BallPivoting::IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c)
     if (angle <= 10 || angle >= 170)
         return false;
 
-    if (!ConsistentNormal(a, b, c))
+    if (e57->GetHasNormals() && !ConsistentNormal(a, b, c))
        return false;
 
     if (ContainsAnotherPoints(a, b, c))
@@ -61,7 +61,7 @@ Triangle2 BallPivoting::FindInitialTriangle()
         //printf("finding init triangle \n");
         KDTreeNode* seedPoint = this->tree->GetRandomNode();
 
-        std::vector<KDTreeNode*> neighbors = tree->GetNeighborsWithinRadius(seedPoint, 2 * radius);
+        std::vector<KDTreeNode*> neighbors = tree->GetNeighborsWithinRadius(seedPoint->point->position, 2 * radius);
         for (KDTreeNode* neighbor : neighbors)
         {
             if(this->stopEarly)
@@ -103,17 +103,13 @@ bool BallPivoting::ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNod
 {
     float rad;
 	glm::vec3 center = ComputeCircumcenter(a, b, c, rad);
-	/*if (center.x == -5.0f)
-		return false;*/
-    E57Point pC = { center };
-    KDTreeNode ballCenterNode = { &pC, nullptr, nullptr, nullptr };
 
-    std::vector<E57Point*> points;
-    points.push_back(a->point);
-    points.push_back(b->point);
-    points.push_back(c->point);
+    std::unordered_set<E57Point*> points;
+    points.insert(a->point);
+    points.insert(b->point);
+    points.insert(c->point);
 
-    bool contains = tree->ContainsPointsWithinRadiusBesidesPoints(&ballCenterNode, points, rad -this->tolerance);
+    bool contains = tree->ContainsPointsWithinRadiusBesidesPoints(center, points, rad -this->tolerance);
     return contains;
 }
 
@@ -231,10 +227,8 @@ void BallPivoting::Run()
         KDTreeNode* pB = current.b;
 
         glm::vec3 midpoint = (pA->point->position + pB->point->position) / 2.0f;
-        E57Point m = { midpoint ,glm::vec3(0.0f), false };
-        KDTreeNode node = { &m,nullptr,nullptr,nullptr };
 
-        std::vector<KDTreeNode*> candidates = tree->GetNeighborsWithinRadius(&node, radius * 2);
+        std::vector<KDTreeNode*> candidates = tree->GetNeighborsWithinRadius(midpoint, radius * 2);
 
         std::sort(candidates.begin(), candidates.end(), [&](KDTreeNode* a, KDTreeNode* b)
             {
@@ -301,8 +295,8 @@ void BallPivoting::Run()
 
 void BallPivoting::SetUp()
 {
-    if(!e57->GetHasNormals())
-        e57->CalculateNormals(radius,0);
+    /*if(!e57->GetHasNormals())
+        e57->CalculateNormals(radius,0);*/
     if (tree->GetRoot() == nullptr)
         e57->SetUpTree();
 }

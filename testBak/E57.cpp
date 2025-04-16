@@ -36,11 +36,6 @@ void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTre
     std::vector<std::pair<E57Point*, std::vector<KDTreeNode*>>> neighborsToCache;
     int size = endIndex - startIndex;
     for (int i = startIndex; i < endIndex; i++) {
-        KDTreeNode seedPoint = { &this->points[i], nullptr, nullptr, nullptr };
-		/*KDTreeNode* seedPoint = tree.FindNode(&this->points[i]);
-		if (!seedPoint) {
-			continue;
-		}*/
 
         if(this->stopCalulatingNormals)
 			return;
@@ -50,11 +45,11 @@ void E57::CalculateNormalsThread(std::unordered_map<E57Point*, std::vector<KDTre
 
         std::vector<KDTreeNode*> neighbors = std::vector<KDTreeNode*>();
         if(radius > 0)
-            neighbors = tree.GetNeighborsWithinRadius(&seedPoint, radius);
+            neighbors = tree.GetNeighborsWithinRadius(points[i].position, radius);
         if(numOfNeigbours > 0)
-            neighbors = tree.GetKNearestNeighbors(&seedPoint, numOfNeigbours);
+            neighbors = tree.GetKNearestNeighbors(points[i].position, numOfNeigbours);
 
-        neighborsToCache.push_back({ &this->points[i], neighbors });
+        neighborsToCache.push_back({ &points[i], neighbors});
 
         if (neighbors.size() < 3)
             continue;
@@ -111,13 +106,13 @@ E57::E57(e57::ustring path)
 {   
     points = std::vector<E57Point>();
     count = 0;
-    if (ReadFile(path) != 0)
+    if (ReadFile(path, true) != 0)
     {
         std::cerr << "Could not read file" << std::endl;
     }
 }
 
-int E57::ReadFile(e57::ustring & path)
+int E57::ReadFile(e57::ustring & path, bool allClounds)
 {    
     try {
         if (tree.GetRoot() != nullptr)
@@ -147,48 +142,52 @@ int E57::ReadFile(e57::ustring & path)
 
         // Get the point count of the first cloud
         e57::Data3D data3DHeader;
-        reader.ReadData3D(0, data3DHeader);
-        int pointCount = data3DHeader.pointCount;
-        std::cout << "Point count: " << pointCount << std::endl;
 
-        hasNormals = data3DHeader.pointFields.normalXField && data3DHeader.pointFields.normalYField && data3DHeader.pointFields.normalZField;
-
-        // Allocate memory for points
-        points = std::vector<E57Point>(); // X, Y, Z interleaved
-        std::vector<float> XP(pointCount), YP(pointCount), ZP(pointCount);
-        std::vector<float> NorX(pointCount), NorY(pointCount), NorZ(pointCount);
-        // Prepare buffers for the reader
-        e57::Data3DPointsFloat buffer;
-        buffer.cartesianX = XP.data();
-        buffer.cartesianY = YP.data();
-        buffer.cartesianZ = ZP.data();
-
-        if (hasNormals)
+		numPointClouds = allClounds ? numPointClouds : 1; // Read only the first cloud if not all clouds are needed
+        
+        points = std::vector<E57Point>(); 
+        for (int cloud = 0; cloud < numPointClouds; ++cloud)
         {
-            buffer.normalX = NorX.data();
-            buffer.normalY = NorY.data();
-            buffer.normalZ = NorZ.data();        
-        }
+            reader.ReadData3D(cloud, data3DHeader);
+            int pointCount = data3DHeader.pointCount;
+            std::cout << "Point count: " << pointCount << std::endl;
 
-        // Read points from the first cloud
-        e57::CompressedVectorReader vectorReader = reader.SetUpData3DPointsData(0, static_cast<int64_t>(data3DHeader.pointCount), buffer);
+            hasNormals = data3DHeader.pointFields.normalXField && data3DHeader.pointFields.normalYField && data3DHeader.pointFields.normalZField;
 
-        // Read all points
-        count = vectorReader.read();
-        vectorReader.close();
+            // Allocate memory for points
+            std::vector<float> XP(pointCount), YP(pointCount), ZP(pointCount);
+            std::vector<float> NorX(pointCount), NorY(pointCount), NorZ(pointCount);
+            // Prepare buffers for the reader
+            e57::Data3DPointsFloat buffer;
+            buffer.cartesianX = XP.data();
+            buffer.cartesianY = YP.data();
+            buffer.cartesianZ = ZP.data();
 
-
-        for (int i = 0; i < count; i++) {
-            E57Point point = { glm::vec3(XP[i], YP[i], ZP[i])};
-            point.hasNormal = hasNormals;
             if (hasNormals)
-                point.normal = glm::vec3(NorX[i], NorY[i], NorZ[i]);   
-			points.push_back(point);
+            {
+                buffer.normalX = NorX.data();
+                buffer.normalY = NorY.data();
+                buffer.normalZ = NorZ.data();
+            }
+
+            // Read points from the first cloud
+            e57::CompressedVectorReader vectorReader = reader.SetUpData3DPointsData(0, static_cast<int64_t>(data3DHeader.pointCount), buffer);
+
+            // Read all points
+            count += vectorReader.read();
+            vectorReader.close();
+
+
+            for (int i = 0; i < pointCount; i++) {
+                E57Point point = { glm::vec3(XP[i], YP[i], ZP[i]) };
+                point.hasNormal = hasNormals;
+                if (hasNormals)
+                    point.normal = glm::vec3(NorX[i], NorY[i], NorZ[i]);
+                points.push_back(point);
+            }
+            std::cout << "Successfully read " << pointCount << " points in " << cloud << "point cloud!" << std::endl;
         }
-
-
-
-        std::cout << "Successfully read " << count << " points!" << std::endl;
+        
         //NORMILIZE
         float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
         float maxX = FLT_MIN, maxY = FLT_MIN, maxZ = FLT_MIN;
@@ -223,14 +222,7 @@ int E57::ReadFile(e57::ustring & path)
             if (hasNormals)
             {
                 // Renormalizácia normály
-                float length = std::sqrt(point.normal.x * point.normal.x +
-                    point.normal.y * point.normal.y +
-                    point.normal.z * point.normal.z);
-                if (length > 0.0f) {
-                    point.normal.x /= length;
-                    point.normal.y /= length;
-                    point.normal.z /= length;
-                }
+                point.normal = glm::normalize(point.normal);
             }
         }
     }

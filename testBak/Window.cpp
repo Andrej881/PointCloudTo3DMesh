@@ -114,10 +114,10 @@ void Window::LoadPointCloudToGPU(E57& e57) {
 
 }
 
-void Window::LoadMeshToGPU(AlgorithmControl& algorithmsEnum)
+void Window::LoadMeshToGPU(AlgorithmControl& AlgorithmsEnum)
 {
     this->renderMesh = true;
-	std::vector<Triangle>& triangles = algorithmsEnum.GetTriangles();
+	std::vector<Triangle>& triangles = AlgorithmsEnum.GetTriangles();
     //printf("num of triangles: %d\n", triangles.size());
     std::vector<float> data;
     for (Triangle triangle : triangles)
@@ -169,7 +169,7 @@ void Window::setCallBacks(GLFWcursorposfun mouse, GLFWscrollfun scroll)
     glfwSetCursorPosCallback(window, mouse);
     glfwSetScrollCallback(window, scroll);
 }
-void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui, AlgorithmControl& algorithms)
+void Window::Render(float deltaTime,Shader& ourShader, Camera& camera, MyGuiImplementation& gui, AlgorithmControl& algorithms)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -215,16 +215,16 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
         glDrawArrays(GL_POINTS, 0, pointCount*2);
     glBindVertexArray(0);
     
-    algorithmsEnum algEnum = algorithms.GetActiveAlgorithm();
+    AlgorithmsEnum algEnum = algorithms.GetActiveAlgorithm();
     bool running = algorithms.getRunning();
     float* args = new float[3];
 
-    if (refresh)
+    if (this->refresh)
     {
-        auto now = std::chrono::steady_clock::now();
-        if (now - lastRefreshTime >= refreshInterval)
+        this->timeToRefresh -= deltaTime;
+        if (this->timeToRefresh <= 0)
         {
-            lastRefreshTime = now;
+            this->timeToRefresh = 1 / this->refreshTimePerSec;
             if (this->renderMesh)
             {
                 if (algorithms.GetTriangleMutex() != nullptr)
@@ -239,10 +239,15 @@ void Window::Render(Shader& ourShader, Camera& camera, myGuiImplementation& gui,
                 this->LoadPointCloudToGPU(*gui.e);
             }
         }
+        else
+        {
+            printf("%f\n", this->timeToRefresh);
+        }
     }
 
-    auto result = gui.Render(rotations, !this->renderMesh, args, algEnum, running, &this->pointSize);
-    
+	int oldTime = this->refreshTimePerSec;
+    auto result = gui.Render(rotations, !this->renderMesh, args, algEnum, running, &this->pointSize, this->refresh, this->refreshTimePerSec);
+        
     switch (result)
     {
     case 0:

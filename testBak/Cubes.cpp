@@ -36,20 +36,42 @@ void Cubes::SetMargin(int margin)
 
 void Cubes::SetGrid()
 {
-	//this->grid[0][0][0] = true;
-	//this->grid[this->voxelsInDim-1][this->voxelsInDim-1][this->voxelsInDim-1] = true;
-	// -0.5, 0.5
+	int pointCount = e57->getPoints().size();
+	int numThreads = std::thread::hardware_concurrency();
+	int chunkSize = pointCount / numThreads;
+
+	std::vector<std::thread> threads;
+
+	// Create threads to process the points in parallel
+	for (int t = 0; t < numThreads; ++t)
+	{
+		int startIdx = t * chunkSize;
+		int endIdx = (t == numThreads - 1) ? pointCount : (startIdx + chunkSize);
+
+		threads.push_back(std::thread(&Cubes::SetGridInRange, this, startIdx, endIdx));
+	}
+	// Join all threads to ensure they complete before continuing
+	for (auto& t : threads)
+	{
+		t.join();
+	}
+
+}
+
+void Cubes::SetGridInRange(int startIdx, int endIdx)
+{
+	std::vector<E57Point>& points = e57->getPoints();
 
 	minX = e57->getInfo().minX;
 	minY = e57->getInfo().minY;
 	minZ = e57->getInfo().minZ;
 
-	std::vector<E57Point>& points = e57->getPoints();
-
-	for (int i = 0; i < points.size(); i++) {
+	for (int i = startIdx; i < endIdx; i++) {
+		if (this->stopEarly)
+			return;
 		//printf("[%d] / [%d]\n", i, points.size());
 		float x = points[i].position.x, y = points[i].position.y, z = points[i].position.z;
-		
+
 		int indexX = (x - minX) / voxelSize, indexY = (y - minY) / voxelSize, indexZ = (z - minZ) / voxelSize;
 
 		if (indexX < 0 || indexY < 0 || indexZ < 0 || indexX >= this->voxelsInDimX || indexY >= this->voxelsInDimY || indexZ >= this->voxelsInDimZ)
@@ -84,22 +106,60 @@ void Cubes::SetGrid()
 	}
 }
 
-void Cubes::GenerateMesh()
-{	
-	for (int i1 = 0; i1 < this->voxelsInDimX; i1++)
+void Cubes::GenerateMeshInRange(int startX, int endX, int startY, int endY, int startZ, int endZ)
+{
+	for (int i1 = startX; i1 < endX; ++i1)
 	{
-		for (int i2 = 0; i2 < this->voxelsInDimY; i2++)
+		for (int i2 = startY; i2 < endY; ++i2)
 		{
-			for (int i3 = 0; i3 < this->voxelsInDimZ; i3++)
+			for (int i3 = startZ; i3 < endZ; ++i3)
 			{
 				if (this->stopEarly)
 					return;
-				if (this->grid[i1][i2][i3]) 
+				if (this->grid[i1][i2][i3])
 				{
-					CreateCube(i1, i2, i3);					
+					CreateCube(i1, i2, i3);
 				}
 			}
 		}
+	}
+}
+
+void Cubes::GenerateMesh()
+{	
+	int numThreads = std::thread::hardware_concurrency();
+	int chunkSizeX = voxelsInDimX / numThreads;
+	int chunkSizeY = voxelsInDimY / numThreads;
+	int chunkSizeZ = voxelsInDimZ / numThreads;
+
+	std::vector<std::thread> threads;
+
+	// Create threads to process different chunks of the 3D grid
+	for (int tX = 0; tX < numThreads; ++tX)
+	{
+		for (int tY = 0; tY < numThreads; ++tY)
+		{
+			for (int tZ = 0; tZ < numThreads; ++tZ)
+			{
+				int startX = tX * chunkSizeX;
+				int endX = (tX == numThreads - 1) ? voxelsInDimX : startX + chunkSizeX;
+
+				int startY = tY * chunkSizeY;
+				int endY = (tY == numThreads - 1) ? voxelsInDimY : startY + chunkSizeY;
+
+				int startZ = tZ * chunkSizeZ;
+				int endZ = (tZ == numThreads - 1) ? voxelsInDimZ : startZ + chunkSizeZ;
+
+				// Launch a thread for each chunk
+				threads.push_back(std::thread(&Cubes::GenerateMeshInRange, this, startX, endX, startY, endY, startZ, endZ));
+			}
+		}
+	}
+
+	// Join all threads to ensure they complete before continuing
+	for (auto& t : threads)
+	{
+		t.join();
 	}
 }
 
@@ -212,6 +272,13 @@ void Cubes::Run()
 	this->GetTriangles().clear();
 	lock.unlock();
 
+	SetGrid();
+	if (this->stopEarly)
+	{
+		this->running = this->stopEarly = false;
+		return;
+	}
+
 	GenerateMesh();
 	this->running = this->stopEarly = false;
 }
@@ -219,7 +286,6 @@ void Cubes::Run()
 void Cubes::SetUp()
 {
 	InitGrid();
-	SetGrid();
 }
 
 Cubes::~Cubes()

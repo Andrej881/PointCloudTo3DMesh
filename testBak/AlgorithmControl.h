@@ -5,7 +5,7 @@
 #include "BallPivoting.h"
 #include "Poisson.h"
 
-enum algorithmsEnum {
+enum AlgorithmsEnum {
 	CUBES, MARCHING_CUBES, BALL_PIVOTING, POISSON, NONE
 };
 
@@ -16,7 +16,7 @@ private:
 
 	E57* e57;
 
-	algorithmsEnum active;
+	AlgorithmsEnum active;
 
 	Cubes cubes;
 	MarchingCubes marchinCubes;
@@ -26,10 +26,10 @@ private:
 	ReconstructionAlgorithm* activeAlgorithm;
 public:
 	AlgorithmControl(E57* e);
-	AlgorithmControl(E57* e, algorithmsEnum starting);
+	AlgorithmControl(E57* e, AlgorithmsEnum starting);
 
 	void Run();
-	void ChangeAlgorithm(algorithmsEnum a);
+	void ChangeAlgorithm(AlgorithmsEnum a);
 	void SetUp();
 	void Stop();
 	void ChangeParams(float* args);
@@ -38,7 +38,7 @@ public:
 
 	bool getRunning();
 
-	algorithmsEnum GetActiveAlgorithm();
+	AlgorithmsEnum GetActiveAlgorithm();
 	std::vector<Triangle>& GetTriangles();
 
 	~AlgorithmControl();

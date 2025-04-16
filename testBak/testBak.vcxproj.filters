@@ -87,9 +87,6 @@
     <ClCompile Include="MarchingCubes.cpp">
       <Filter>Source Files\meshAlgorithms\MarchingCubeFolder</Filter>
     </ClCompile>
-    <ClCompile Include="BallPivoting.cpp">
-      <Filter>Source Files\meshAlgorithms\BPA</Filter>
-    </ClCompile>
     <ClCompile Include="AlgorithmControl.cpp">
       <Filter>Source Files\meshAlgorithms</Filter>
     </ClCompile>
@@ -104,6 +101,9 @@
     </ClCompile>
     <ClCompile Include="Octree.cpp">
       <Filter>Source Files\meshAlgorithms\Poisson</Filter>
+    </ClCompile>
+    <ClCompile Include="BallPivoting.cpp">
+      <Filter>Source Files\meshAlgorithms\BPA</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

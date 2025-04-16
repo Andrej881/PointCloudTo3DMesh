@@ -2,13 +2,13 @@
 //https://github.com/ocornut/imgui/wiki/Getting-Started
 
 #include "myGuiImplemnetation.h"
-void myGuiImplementation::EndRender()
+void MyGuiImplementation::EndRender()
 {
     ImGui::End();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
-myGuiImplementation::myGuiImplementation(GLFWwindow* window, E57* e57)
+MyGuiImplementation::MyGuiImplementation(GLFWwindow* window, E57* e57)
 {
     e = e57;
     // ImGui initialization
@@ -21,7 +21,7 @@ myGuiImplementation::myGuiImplementation(GLFWwindow* window, E57* e57)
 
 }
 
-int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, algorithmsEnum& mesh, bool running, float* pointSize)
+int MyGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, AlgorithmsEnum& mesh, bool running, float* pointSize, bool& refresh, int& refreshTimes)
 {
     // Start ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -31,12 +31,15 @@ int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
     // UI Window
     ImGui::Begin("Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-    // Load File
+    // Load File    
+    static bool allPoints = false;
     if (ImGui::Button("Load File"))
     {
         EndRender();
-        return OpenFileDialog();//0
+        return OpenFileDialog(allPoints);
     }
+    ImGui::SameLine();
+    ImGui::Checkbox("Load All Points", &allPoints);
 
 	//Point Size
     ImGui::Separator();
@@ -182,7 +185,7 @@ int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
         }
 
         if (ImGui::TreeNode("Ball Pivoting")) {
-            static float bpRadius = 1.0f;
+            static float bpRadius = 0.015f;
             ImGui::InputFloat("BP Radius", &bpRadius);
 
             if (!running)
@@ -225,13 +228,29 @@ int myGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
             return 3;
         }
     }
+    // Refresh
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Refresh"))
+    {
+        int minR = 1;
+        int maxR = 60;
+        ImGui::SliderInt("Refresh per sec", &refreshTimes, minR, maxR);
+        if (ImGui::Button(refresh ? "Off" : "On"))
+        {
+            refresh = !refresh;
+        }
+    }
+
+    //Point Size
+    ImGui::Separator();
+
 
     EndRender();
     return -10;
 }
 
 //https://github.com/btzy/nativefiledialog-extended
-int myGuiImplementation::OpenFileDialog()
+int MyGuiImplementation::OpenFileDialog(bool allPoints)
 {
     nfdchar_t* outPath = NULL;
     nfdresult_t result = NFD_OpenDialog("e57", NULL, &outPath);
@@ -240,7 +259,7 @@ int myGuiImplementation::OpenFileDialog()
     {
         std::string filePath(outPath);
         free(outPath);
-        return e->ReadFile(filePath);
+        return e->ReadFile(filePath, allPoints);
     }
     else if (result == NFD_CANCEL)
     {
@@ -254,7 +273,7 @@ int myGuiImplementation::OpenFileDialog()
     }
 }
 
-myGuiImplementation::~myGuiImplementation()
+MyGuiImplementation::~MyGuiImplementation()
 {
 
     e->StopCalculatingNormals();

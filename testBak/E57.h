@@ -35,7 +35,7 @@ public:
 	void SetUpTree();
 	E57(e57::ustring path);
 
-	int ReadFile(e57::ustring & path);
+	int ReadFile(e57::ustring & path, bool allClounds);
 	std::vector<E57Point>& getPoints();
 	KDTree& getTree();
 
