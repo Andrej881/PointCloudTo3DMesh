@@ -30,6 +30,7 @@ private:
 	bool renderMesh;
 	bool refresh;
 	float pointSize;
+	int numOfTriangles;
 
 	std::thread meshCalculating;
 
@@ -46,7 +47,7 @@ public:
 	void Render(float deltaTime, Shader& ourShader, Camera& camera, MyGuiImplementation& gui, AlgorithmControl& AlgorithmsEnum);
 	GLFWwindow* getWindow();
 	void LoadPointCloudToGPU(E57 & e57);
-	void LoadMeshToGPU(AlgorithmControl& AlgorithmsEnum);
+	void LoadMeshToGPU(AlgorithmControl& Algorithms);
 
 	~Window();
 };

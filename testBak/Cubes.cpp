@@ -82,7 +82,10 @@ void Cubes::SetGridInRange(int startIdx, int endIdx)
 
 		if (margin == 0)
 		{
+
+			std::unique_lock<std::mutex> lock(this->triangleMutex);
 			this->grid[indexX][indexY][indexZ] = true;
+			lock.unlock();
 		}
 
 		for (int j1 = -margin; j1 <= margin; ++j1)
@@ -99,7 +102,10 @@ void Cubes::SetGridInRange(int startIdx, int endIdx)
 						//printf("X:%d Y:%d Z:%d voxels in dim:%d \n", newIndexX, newIndexY, newIndexZ, this->voxelsInDim);
 						continue;
 					}
+
+					std::unique_lock<std::mutex> lock(this->triangleMutex);
 					this->grid[newIndexX][newIndexY][newIndexZ] = true;
+					lock.unlock();
 				}
 			}
 		}
@@ -199,8 +205,8 @@ void Cubes::CreateCube(int x, int y, int z)
 	if (x <= 0 || (x > 0 && !this->grid[x - 1][y][z]))
 	{
 		cube.sides[1].active = true;
-		cube.sides[1].triangles[0] = { cube.verteces[0] , cube.verteces[2] , cube.verteces[3] };
-		cube.sides[1].triangles[1] = { cube.verteces[2] , cube.verteces[5] , cube.verteces[3] };
+		cube.sides[1].triangles[0] = { cube.verteces[0] , cube.verteces[3] , cube.verteces[2]  };
+		cube.sides[1].triangles[1] = { cube.verteces[2] , cube.verteces[3], cube.verteces[5]  };
 
 		cube.sides[1].triangles[0].computeNormal();
 		cube.sides[1].triangles[1].normal = cube.sides[1].triangles[0].normal;
@@ -211,8 +217,8 @@ void Cubes::CreateCube(int x, int y, int z)
 	if (x >= this->voxelsInDimX - 1 || (x < this->voxelsInDimX - 1 && !this->grid[x + 1][y][z]))
 	{
 		cube.sides[2].active = true;
-		cube.sides[2].triangles[0] = { cube.verteces[1] , cube.verteces[6] , cube.verteces[4] };
-		cube.sides[2].triangles[1] = { cube.verteces[4] , cube.verteces[6] , cube.verteces[7] };
+		cube.sides[2].triangles[0] = { cube.verteces[1], cube.verteces[4] , cube.verteces[6]  };
+		cube.sides[2].triangles[1] = { cube.verteces[4] , cube.verteces[7], cube.verteces[6]  };
 
 		cube.sides[2].triangles[0].computeNormal();
 		cube.sides[2].triangles[1].normal = cube.sides[2].triangles[0].normal;
@@ -223,8 +229,8 @@ void Cubes::CreateCube(int x, int y, int z)
 	if (z >= this->voxelsInDimZ - 1 || (z < this->voxelsInDimZ - 1 && !this->grid[x][y][z + 1]))
 	{
 		cube.sides[3].active = true;
-		cube.sides[3].triangles[0] = { cube.verteces[3] , cube.verteces[7] , cube.verteces[6] };
-		cube.sides[3].triangles[1] = { cube.verteces[3] , cube.verteces[5] , cube.verteces[7] };
+		cube.sides[3].triangles[0] = { cube.verteces[3] , cube.verteces[6], cube.verteces[7]  };
+		cube.sides[3].triangles[1] = { cube.verteces[3] , cube.verteces[7], cube.verteces[5]  };
 
 		cube.sides[3].triangles[0].computeNormal();
 		cube.sides[3].triangles[1].normal = cube.sides[3].triangles[0].normal;
@@ -235,8 +241,8 @@ void Cubes::CreateCube(int x, int y, int z)
 	if (y >= this->voxelsInDimY - 1 || (y < this->voxelsInDimY - 1 && !this->grid[x][y + 1][z]))
 	{
 		cube.sides[4].active = true;
-		cube.sides[4].triangles[0] = { cube.verteces[2] , cube.verteces[4] , cube.verteces[5] };
-		cube.sides[4].triangles[1] = { cube.verteces[4] , cube.verteces[7] , cube.verteces[5] };
+		cube.sides[4].triangles[0] = { cube.verteces[2] , cube.verteces[5], cube.verteces[4]  };
+		cube.sides[4].triangles[1] = { cube.verteces[4] , cube.verteces[5], cube.verteces[7]  };
 
 		cube.sides[4].triangles[0].computeNormal();
 		cube.sides[4].triangles[1].normal = cube.sides[4].triangles[0].normal;
@@ -246,8 +252,8 @@ void Cubes::CreateCube(int x, int y, int z)
 	if (y <= 0 || (y > 0 && !this->grid[x][y - 1][z]))
 	{
 		cube.sides[5].active = true;
-		cube.sides[5].triangles[0] = { cube.verteces[0] , cube.verteces[3] , cube.verteces[1] };
-		cube.sides[5].triangles[1] = { cube.verteces[1] , cube.verteces[3] , cube.verteces[6] };
+		cube.sides[5].triangles[0] = { cube.verteces[0] , cube.verteces[1], cube.verteces[3]  };
+		cube.sides[5].triangles[1] = { cube.verteces[1] , cube.verteces[6], cube.verteces[3]  };
 
 		cube.sides[5].triangles[0].computeNormal();
 		cube.sides[5].triangles[1].normal = cube.sides[5].triangles[0].normal;
@@ -266,11 +272,8 @@ void Cubes::CreateCube(int x, int y, int z)
 
 void Cubes::Run()
 {
-	this->running = true;
-
-	std::unique_lock<std::mutex> lock(triangleMutex);
-	this->GetTriangles().clear();
-	lock.unlock();
+	auto start = std::chrono::high_resolution_clock::now();
+	this->running = true;	
 
 	SetGrid();
 	if (this->stopEarly)
@@ -281,10 +284,20 @@ void Cubes::Run()
 
 	GenerateMesh();
 	this->running = this->stopEarly = false;
+
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> duration = end - start;
+
+	std::unique_lock<std::mutex> lock(triangleMutex);
+	std::cout << "Trvanie algoritmu: " << duration.count() << " sec. a trojuholnikov " << this->GetTriangles().size() << std::endl;
+	lock.unlock();
 }
 
 void Cubes::SetUp()
 {
+	std::unique_lock<std::mutex> lock(triangleMutex);
+	this->GetTriangles().clear();
+	lock.unlock();
 	InitGrid();
 }
 

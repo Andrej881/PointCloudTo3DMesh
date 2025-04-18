@@ -114,10 +114,11 @@ void Window::LoadPointCloudToGPU(E57& e57) {
 
 }
 
-void Window::LoadMeshToGPU(AlgorithmControl& AlgorithmsEnum)
+void Window::LoadMeshToGPU(AlgorithmControl& Algorithms)
 {
     this->renderMesh = true;
-	std::vector<Triangle>& triangles = AlgorithmsEnum.GetTriangles();
+	std::vector<Triangle>& triangles = Algorithms.GetTriangles();
+	numOfTriangles = triangles.size();
     //printf("num of triangles: %d\n", triangles.size());
     std::vector<float> data;
     for (Triangle triangle : triangles)
@@ -193,16 +194,15 @@ void Window::Render(float deltaTime,Shader& ourShader, Camera& camera, MyGuiImpl
     model = glm::rotate(model, glm::radians(rotations[2]), glm::vec3(0.0f, 0.0f, 1.0f));
     ourShader.setMat4("model", model);
 
-    //glm::vec3 lightPos(0.0f, 1.2f, 1.5f);
-    glm::vec3 lightPos(1.0f, 1.0f, 1.0f);
+    glm::vec3 lightPos(1.0f);
     ourShader.setVec3("lightPos", lightPos);
 
     // Light color (white light)
-    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+    glm::vec3 lightColor(1.0f);
     ourShader.setVec3("lightColor", lightColor);
 
     // Object color (can be any color you want)
-    glm::vec3 objectColor(1.0f, 1.0f, 1.0f);
+    glm::vec3 objectColor(1.0f);
     ourShader.setVec3("objectColor", objectColor);
 
     glBindVertexArray(VAO);
@@ -210,14 +210,14 @@ void Window::Render(float deltaTime,Shader& ourShader, Camera& camera, MyGuiImpl
     glPointSize(this->pointSize);
 
     if (this->renderMesh)
-        glDrawArrays(GL_TRIANGLES, 0, algorithms.GetTriangles().size() * 3 * 2);    
+        glDrawArrays(GL_TRIANGLES, 0, numOfTriangles * 3 * 2);    
     else
         glDrawArrays(GL_POINTS, 0, pointCount*2);
     glBindVertexArray(0);
     
     AlgorithmsEnum algEnum = algorithms.GetActiveAlgorithm();
     bool running = algorithms.getRunning();
-    float* args = new float[3];
+    float* args = new float[4];
 
     if (this->refresh)
     {
@@ -241,7 +241,7 @@ void Window::Render(float deltaTime,Shader& ourShader, Camera& camera, MyGuiImpl
         }
         else
         {
-            printf("%f\n", this->timeToRefresh);
+            //printf("%f\n", this->timeToRefresh);
         }
     }
 

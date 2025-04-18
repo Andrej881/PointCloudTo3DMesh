@@ -56,26 +56,22 @@ Triangle2 BallPivoting::FindInitialTriangle()
 {
     int iterations = 1000;
     for (int i = 0; i < iterations; ++i)
-    //while(true)
     {
-        //printf("finding init triangle \n");
         KDTreeNode* seedPoint = this->tree->GetRandomNode();
 
         std::vector<KDTreeNode*> neighbors = tree->GetNeighborsWithinRadius(seedPoint->point->position, 2 * radius);
         for (KDTreeNode* neighbor : neighbors)
         {
-            if(this->stopEarly)
-				return { nullptr, nullptr, nullptr };
             if (neighbor == seedPoint)
                 continue;
             for (KDTreeNode* neighbor2 : neighbors)
             {
+                if (this->stopEarly)
+                    return { nullptr, nullptr, nullptr };
                 if (neighbor == neighbor2 || seedPoint == neighbor2)
                     continue;
                 if (IsCenterOfTriangleValid(seedPoint, neighbor, neighbor2))
                 {
-                    float ballRadius;
-                    glm::vec3 ballCenter = ComputeCircumcenter(seedPoint, neighbor, neighbor2, ballRadius);
                     if (IsTriangleValid(seedPoint, neighbor, neighbor2))
                     {
                         Triangle2 t = { seedPoint, neighbor, neighbor2 };
@@ -88,12 +84,45 @@ Triangle2 BallPivoting::FindInitialTriangle()
     return { nullptr, nullptr, nullptr};
     
 }
+Triangle2 BallPivoting::FindNextInitialTriangle(std::unordered_set<Triangle2, Triangle2Hash>& visitedTriangles)
+{
+    int iterations = 1000;
+    for (int i = 0; i < iterations; ++i)
+    {
+        if(i % (iterations / 10) == 0 && i != 0)
+            printf("Finding Next Triangle %d%% until it ends\n", (i * 100) / iterations);
+        KDTreeNode* seedPoint = this->tree->GetRandomNode();
+
+        std::vector<KDTreeNode*> neighbors = tree->GetNeighborsWithinRadius(seedPoint->point->position, 2 * radius);
+        for (KDTreeNode* neighbor : neighbors)
+        {
+            if (neighbor == seedPoint)
+                continue;
+            for (KDTreeNode* neighbor2 : neighbors)
+            {
+                if (this->stopEarly)
+                    return { nullptr, nullptr, nullptr };
+                if (neighbor == neighbor2 || seedPoint == neighbor2 || visitedTriangles.count({seedPoint, neighbor, neighbor2}))
+                    continue;
+                if (IsCenterOfTriangleValid(seedPoint, neighbor, neighbor2))
+                {
+                    if (IsTriangleValid(seedPoint, neighbor, neighbor2))
+                    {
+                        Triangle2 t = { seedPoint, neighbor, neighbor2 };
+                        return t;
+                    }
+                }
+            }
+        }
+    }
+    return { nullptr, nullptr, nullptr };
+}
 bool BallPivoting::IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c)
 {
     float ballRadius;
     glm::vec3 ballCenter = ComputeCircumcenter(a, b, c, ballRadius);
 
-    if (ballRadius + this->tolerance < radius || ballRadius - this->tolerance > radius)
+    if (ballRadius - this->tolerance > radius)
 		return false;
 
     return true;
@@ -125,20 +154,9 @@ bool BallPivoting::ConsistentNormal(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c)
     bool isBConsistent = glm::dot(triangleNormal, b->point->normal) > 0;
     bool isCConsistent = glm::dot(triangleNormal, c->point->normal) > 0;
 
-
     // If all vertex normals are consistent, return true
     return isAConsistent == isBConsistent && isBConsistent == isCConsistent;
-
-    glm::vec3 e1 = b->point->position - a->point->position;
-    glm::vec3 e2 = c->point->position - a->point->position;
-    glm::vec3 triNormal = glm::normalize(glm::cross(e1, e2));
-
-    glm::vec3 avgNormal = glm::normalize(a->point->normal + b->point->normal + c->point->normal);
-
-    // Orient·cia trojuholnÌka musÌ byù v s˙lade s norm·lami bodov
-    if (glm::dot(triNormal, avgNormal) < 0.0f)
-        return false;
-    
+        
 }
 
 BallPivoting::BallPivoting(E57* e57) : ReconstructionAlgorithm(e57)
@@ -159,28 +177,11 @@ void BallPivoting::SetRadius(float radius)
 	this->radius = radius;
 }
 
-struct EdgeHash
-{
-	std::size_t operator()(const Edge& e) const {
-        std::size_t h1 = std::hash<KDTreeNode*>()(e.a);
-        std::size_t h2 = std::hash<KDTreeNode*>()(e.b);
-        return h1 ^ h2;
-    }
-};
-
-
-struct Triangle2Hash
-{
-	std::size_t operator()(const Triangle2& e) const {
-		std::size_t h1 = std::hash<KDTreeNode*>()(e.p1);
-		std::size_t h2 = std::hash<KDTreeNode*>()(e.p2);
-		std::size_t h3 = std::hash<KDTreeNode*>()(e.p3);
-		return h1 ^ h2 ^ h3;
-	}
-};
 int counter = 0;
 void BallPivoting::Run()
 {
+	auto start = std::chrono::high_resolution_clock::now();
+
     this->running = true;
 
     std::unique_lock<std::mutex> lock(triangleMutex);
@@ -214,8 +215,41 @@ void BallPivoting::Run()
     std::vector<Edge> frontier2 = { {seedTriangle.p1, seedTriangle.p2} };
     frontier2.push_back({ seedTriangle.p1, seedTriangle.p3 });
     frontier2.push_back({ seedTriangle.p2, seedTriangle.p3 });
-    while (!this->stopEarly && !frontier2.empty()) 
+    while (!this->stopEarly) 
     {
+        //if (frontier2.empty())
+            //break;
+        bool end = false;
+        while (frontier2.empty())
+        {			
+			seedTriangle = FindNextInitialTriangle(visited3);
+            if (seedTriangle.p1 == nullptr || seedTriangle.p2 == nullptr || seedTriangle.p3 == nullptr)
+            {
+                end = true;
+				break;
+            }
+
+			lock = std::unique_lock<std::mutex>(triangleMutex);
+			triangles.push_back(seedTriangle.triangle);
+			lock.unlock();
+            if (!visited2.count({ seedTriangle.p1 ,seedTriangle.p2 }))
+                frontier2.push_back({ seedTriangle.p1 ,seedTriangle.p2 });
+
+            if (!visited2.count({ seedTriangle.p1 ,seedTriangle.p3 }))
+                frontier2.push_back({ seedTriangle.p1 ,seedTriangle.p3 });
+
+            if (!visited2.count({ seedTriangle.p2 ,seedTriangle.p3 }))
+                frontier2.push_back({ seedTriangle.p2 ,seedTriangle.p3 });
+
+			visited2.insert({ seedTriangle.p1 ,seedTriangle.p2 });
+			visited2.insert({ seedTriangle.p1 ,seedTriangle.p3 });
+			visited2.insert({ seedTriangle.p2 ,seedTriangle.p3 });
+			visited3.insert(seedTriangle);
+        }
+
+        if (end)
+            break;
+
         if (this->GetTriangles().size() % 1000 == 0)
             //printf("[mod1000] cur num of triangles %d num of trinagles in front %d\n", this->GetTriangles().size(), frontier.size());
             printf("[mod1000] cur num of triangles %d num of edges in front %d\n", this->GetTriangles().size(), frontier2.size());
@@ -235,10 +269,10 @@ void BallPivoting::Run()
                 glm::vec3 ballCenterA = (midpoint + a->point->position) / 2.0f;
                 glm::vec3 ballCenterB = (midpoint + b->point->position) / 2.0f;
 
-                float distA = glm::length(ballCenterA - a->point->position);
-                float distB = glm::length(ballCenterB - b->point->position);
+                float distA2 = glm::distance2(ballCenterA, a->point->position);
+                float distB2 = glm::distance2(ballCenterB, b->point->position);
 
-                return distA < distB;
+                return distA2 < distB2;
             });
 
         for (KDTreeNode*& candidate : candidates)
@@ -291,6 +325,13 @@ void BallPivoting::Run()
         }
     }
     this->running = this->stopEarly = false;
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+
+    std::unique_lock<std::mutex> lock2(triangleMutex);
+    std::cout << "Trvanie algoritmu: " << duration.count() << " sec. a trojuholnikov " << this->GetTriangles().size() << std::endl;
+    lock2.unlock();
 }
 
 void BallPivoting::SetUp()

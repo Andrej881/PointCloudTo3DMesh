@@ -13,6 +13,9 @@ class MarchingCubes : public ReconstructionAlgorithm
 private:
 	std::mutex trianglesMutex;
 
+	int margin;
+	float sigmaMultiplier;//multiplies voxelSize
+
 	float minX, minY, minZ;
 
 	int voxelsInDimX, voxelsInDimY, voxelsInDimZ;
@@ -37,10 +40,12 @@ protected:
 	virtual float CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index);
 public:
 	MarchingCubes(E57* e57);
-	MarchingCubes(float isolevel, float voxelSize, E57* e57);
+	MarchingCubes(float isolevel, float voxelSize,int margin, float sigmaMulti, E57* e57);
 
 	void SetVoxelSize(float voxelSize);
 	void SetIsoLevel(float isolevel);
+	void SetMargin(int margin);
+	void SetSigmaMultiplier(float sigmaMultiplier);
 
 	int GetVoxelsInDimX();
 	int GetVoxelsInDimY();

@@ -52,6 +52,25 @@ struct Triangle2 {
 	}
 };
 
+struct EdgeHash
+{
+	std::size_t operator()(const Edge& e) const {
+		std::size_t h1 = std::hash<KDTreeNode*>()(e.a);
+		std::size_t h2 = std::hash<KDTreeNode*>()(e.b);
+		return h1 ^ h2;
+	}
+};
+
+struct Triangle2Hash
+{
+	std::size_t operator()(const Triangle2& e) const {
+		std::size_t h1 = std::hash<KDTreeNode*>()(e.p1);
+		std::size_t h2 = std::hash<KDTreeNode*>()(e.p2);
+		std::size_t h3 = std::hash<KDTreeNode*>()(e.p3);
+		return h1 ^ h2 ^ h3;
+	}
+};
+
 class BallPivoting : public ReconstructionAlgorithm
 {
 private:
@@ -61,6 +80,7 @@ private:
 	KDTree* tree;
 
 	Triangle2 FindInitialTriangle();
+	Triangle2 FindNextInitialTriangle(std::unordered_set<Triangle2, Triangle2Hash> &visitedTriangles);
 	bool IsCenterOfTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
 	bool IsTriangleValid(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);
 	bool ContainsAnotherPoints(KDTreeNode* a, KDTreeNode* b, KDTreeNode* c);

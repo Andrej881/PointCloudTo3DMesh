@@ -3,6 +3,7 @@
 #include "E57.h"
 #include "Triangle.h"
 
+#include <chrono>
 class ReconstructionAlgorithm
 {
 private:

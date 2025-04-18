@@ -15,10 +15,9 @@ void main()
     vec3 lightDir = normalize(lightPos - FragPos);  // direction from frag to light
 
     // Calculate diffuse lighting
-    float diff = max(dot(norm, lightDir), 0.0); // Lambertian diffuse model
+    float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
 
-    // Simple Phong reflection model (ambient + diffuse)
     vec3 ambient = 0.2 * lightColor;  // ambient light intensity
     vec3 result = (ambient + diffuse) * objectColor;
 

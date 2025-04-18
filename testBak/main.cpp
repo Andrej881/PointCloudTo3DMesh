@@ -1,3 +1,4 @@
+
 #include "E57.h"
 #include "Window.h"
 #include "Shader.h"
@@ -67,7 +68,6 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        shader.use();
         win.ProcessInput(deltaTime, camera);
         win.Render(deltaTime ,shader, camera, gui, algorithms);        
     }

@@ -89,9 +89,13 @@ void AlgorithmControl::ChangeParams(float* args)
 		// isolevel, voxelSize;
 		float isolevel = args[0];
 		float voxelSize = args[1];
+		float multi = args[2];
+		int margin = (int)args[3];
 
 		this->marchinCubes.SetIsoLevel(isolevel);
 		this->marchinCubes.SetVoxelSize(voxelSize);
+		this->marchinCubes.SetMargin(margin);
+		this->marchinCubes.SetSigmaMultiplier(multi);
 		break;
 	}
 	case BALL_PIVOTING:

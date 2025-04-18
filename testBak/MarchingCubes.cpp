@@ -14,18 +14,21 @@ void MarchingCubes::InitGrid()
 	this->voxelsInDimY = (int)((info.maxY - info.minY) / voxelSize) + 2;
 	this->voxelsInDimZ = (int)((info.maxZ - info.minZ) / voxelSize) + 2;
 	
-	this->grid = std::vector<std::vector<std::vector<float>>>(this->voxelsInDimX, std::vector<std::vector<float>>(this->voxelsInDimY, std::vector<float>(this->voxelsInDimZ, FLT_MIN)));
+	this->grid = std::vector<std::vector<std::vector<float>>>(this->voxelsInDimX, std::vector<std::vector<float>>(this->voxelsInDimY, std::vector<float>(this->voxelsInDimZ,-FLT_MAX)));
 }
 
 MarchingCubes::MarchingCubes(E57* e57) : ReconstructionAlgorithm(e57)
 {
 	this->voxelSize = 0.01f;
 	this->isolevel = 0.2f;
+	this->margin = 1;
+	this->sigmaMultiplier = 0.75f; //multiplies voxelSize
 }
 
-MarchingCubes::MarchingCubes(float isolevel, float voxelSize, E57*e57) : ReconstructionAlgorithm(e57)
+MarchingCubes::MarchingCubes(float isolevel, float voxelSize,int margin, float sigmaMulti, E57* e57) : ReconstructionAlgorithm(e57)
 {
-
+	this->sigmaMultiplier = sigmaMulti;
+	this->margin = margin;
 	this->voxelSize = voxelSize;
 	this->isolevel = isolevel;
 }
@@ -38,6 +41,16 @@ void MarchingCubes::SetVoxelSize(float voxelSize)
 void MarchingCubes::SetIsoLevel(float isolevel)
 {
 	this->isolevel = isolevel;
+}
+
+void MarchingCubes::SetMargin(int margin)
+{
+	this->margin = margin;
+}
+
+void MarchingCubes::SetSigmaMultiplier(float sigmaMultiplier)
+{
+	this->sigmaMultiplier = sigmaMultiplier;
 }
 
 int MarchingCubes::GetVoxelsInDimX()
@@ -78,12 +91,7 @@ void MarchingCubes::SetGrid()
 		t.join();
 	}	
 
-	//printf("\nMax Exponent exp[%f] res[%f]\n", maxExponent.exponent, maxExponent.result);
-	//printf("Min Exponent exp[%f] res[%f]\n", minExponent.exponent, minExponent.result);
-	//printf("Max Result exp[%f] res[%f]\n", maxResult.exponent, maxResult.result);
-	//printf("Min Result exp[%f] res[%f]\n\n", minResult.exponent, minResult.result);
 
-	//printf("num of triangles: %d\n", triangles.size());
 }
 
 glm::vec3 MarchingCubes::InterpolateEdge(int x, int y, int z, int edge)
@@ -138,71 +146,32 @@ void MarchingCubes::CreateTriangle(glm::vec3 a, glm::vec3 b, glm::vec3 c)
 	tri.c.position = c;
 	tri.computeNormal();
 
-	std::unique_lock<std::mutex> lock(this->trianglesMutex);
-	std::unique_lock<std::mutex> lock2(triangleMutex);
+	std::unique_lock<std::mutex> lock(triangleMutex);
 
 	this->GetTriangles().push_back(tri);
 
 	lock.unlock();
-	lock2.unlock();
 }
 
 float MarchingCubes::CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index)
 {
-	float voxelCenterX = (index.x * voxelSize + min.x) + voxelSize / 2;
-	float voxelCenterY = (index.y * voxelSize + min.y) + voxelSize / 2;
-	float voxelCenterZ = (index.z * voxelSize + min.z) + voxelSize / 2;
+	float voxelX = (index.x * voxelSize + min.x) + voxelSize / 2;
+	float voxelY = (index.y * voxelSize + min.y) + voxelSize / 2;
+	float voxelZ = (index.z * voxelSize + min.z) + voxelSize / 2;
 
-	float dx = point.x - voxelCenterX;
-	float dy = point.y - voxelCenterY;
-	float dz = point.z - voxelCenterZ;
-
-	float distanceSquared = dx * dx + dy * dy + dz * dz;
-	float sigma = voxelSize * 0.5;
+	float distanceSquared = glm::distance2(point, glm::vec3(voxelX, voxelY, voxelZ));
+	float sigma = voxelSize * this->sigmaMultiplier;
 	float sigmaSquared = sigma * sigma;
 
 	float exponent = -distanceSquared / (2.0f * sigmaSquared);
 	float result = exp(exponent);
-
-	/*if (exponent > maxExponent.exponent)
-	{
-		maxExponent.exponent = exponent;
-		maxExponent.result = result;
-	}
-	if (result > minResult.result)
-	{
-		maxResult.exponent = exponent;
-		maxResult.result = result;
-	}
-	if (exponent < minExponent.exponent)
-	{
-		minExponent.exponent = exponent;
-		minExponent.result = result;
-	}
-	if (result < minResult.result)
-	{
-		minResult.exponent = exponent;
-		minResult.result = result;
-	}*/
+	
 	return result;
 }
 
 void MarchingCubes::GenerateMesh()
 {
-	/*for (int i1 = 0; i1 < this->voxelsInDimX; ++i1)
-	{
-		for (int i2 = 0; i2 < this->voxelsInDimY; ++i2)
-		{
-			for (int i3 = 0; i3 < this->voxelsInDimZ; ++i3)
-			{
-				if (this->grid[i1][i2][i3])
-				{
-					GenerateCubeMesh(i1, i2, i3);
-				}
-			}
-		}
-	}*/
-
+	
 	int numThreads = std::thread::hardware_concurrency();
 	int chunkSizeX = voxelsInDimX / numThreads;
 	int chunkSizeY = voxelsInDimY / numThreads;
@@ -238,26 +207,22 @@ void MarchingCubes::GenerateMesh()
 		t.join();
 	}
 }
-int allEdges = 0;
 void MarchingCubes::GenerateCubeMesh(int x, int y, int z)
 {
 	if (x + 1 >= this->voxelsInDimX || y + 1 >= this->voxelsInDimY || z + 1 >= this->voxelsInDimZ) 
 		return;
 	// Determine the corner indices based on the scalar field values (this could be density, signed distance, etc.)
 	int cubeIndex = 0;
-	if (this->grid[x][y][z] > isolevel) cubeIndex |= 1;
-	if (this->grid[x + 1][y][z] > isolevel) cubeIndex |= 2;
-	if (this->grid[x + 1][y + 1][z] > isolevel) cubeIndex |= 4;
-	if (this->grid[x][y + 1][z] > isolevel) cubeIndex |= 8;
-	if (this->grid[x][y][z + 1] > isolevel) cubeIndex |= 16;
-	if (this->grid[x + 1][y][z + 1] > isolevel) cubeIndex |= 32;
-	if (this->grid[x + 1][y + 1][z + 1] > isolevel) cubeIndex |= 64;
-	if (this->grid[x][y + 1][z + 1] > isolevel) cubeIndex |= 128;
+	if (this->grid[x][y][z] < isolevel) cubeIndex |= 1;
+	if (this->grid[x + 1][y][z] < isolevel) cubeIndex |= 2;
+	if (this->grid[x + 1][y + 1][z] < isolevel) cubeIndex |= 4;
+	if (this->grid[x][y + 1][z] < isolevel) cubeIndex |= 8;
+	if (this->grid[x][y][z + 1] < isolevel) cubeIndex |= 16;
+	if (this->grid[x + 1][y][z + 1] < isolevel) cubeIndex |= 32;
+	if (this->grid[x + 1][y + 1][z + 1] < isolevel) cubeIndex |= 64;
+	if (this->grid[x][y + 1][z + 1] < isolevel) cubeIndex |= 128;
 		
-	/*printf("densities : %f %f %f %f %f %f %f %f\n",
-		this->grid[x][y][z], this->grid[x + 1][y][z], this->grid[x + 1][y + 1][z], this->grid[x][y + 1][z],
-		this->grid[x][y][z + 1], this->grid[x + 1][y][z + 1], this->grid[x + 1][y + 1][z + 1], this->grid[x][y + 1][z + 1]);*/
-
+	
 	// Get the edges that are intersected by the surface
 	int edges = edgeTable[cubeIndex];
 
@@ -272,16 +237,9 @@ void MarchingCubes::GenerateCubeMesh(int x, int y, int z)
 			++intersected;
 		}
 	}
-	allEdges += intersected;
-	//printf("intersected: %d all %d\n", intersected, allEdges);
 
 	// Generate triangles from the interpolated vertices
 	for (int i = 0; triTable[cubeIndex][i] != -1; i += 3) {
-		/*if (triTable[cubeIndex][i] >= 12 || triTable[cubeIndex][i + 1] >= 12 || triTable[cubeIndex][i + 2] >= 12)
-		{
-			printf("Out of bounds: cubeIndex=%d, i=%d, vertices.size()=%zu\n", cubeIndex, i, 12);
-			continue;
-		}*/
 		CreateTriangle(
 			vertices[triTable[cubeIndex][i]],
 			vertices[triTable[cubeIndex][i + 1]],
@@ -306,18 +264,19 @@ void MarchingCubes::SetGridInRange(int startIdx, int endIdx)
 		int indexY = (y - minY) / voxelSize;
 		int indexZ = (z - minZ) / voxelSize;
 
-		for (int dx = 0; dx <= 1; dx++)
-			for (int dy = 0; dy <= 1; dy++)
-				for (int dz = 0; dz <= 1; dz++)
+		for (int dx = -margin; dx <= margin; dx++)
+			for (int dy = -margin; dy <= margin; dy++)
+				for (int dz = -margin; dz <= margin; dz++)
 				{
 					int ix = indexX + dx;
 					int iy = indexY + dy;
 					int iz = indexZ + dz;
 
+					if (ix < 0 || iy < 0 || iz < 0 || ix >= this->voxelsInDimX || iy >= this->voxelsInDimY || iz >= this->voxelsInDimZ)
+						continue;
 					float density = CalculateDensity(glm::vec3(x, y, z), glm::vec3(minX, minY, minZ), glm::vec3(ix, iy, iz));
-
 					std::unique_lock<std::mutex> lock(this->trianglesMutex);
-					if (FLT_MIN == grid[ix][iy][iz])
+					if (-FLT_MAX == grid[ix][iy][iz])
 						grid[ix][iy][iz] = density;
 					else
 						grid[ix][iy][iz] += density;
@@ -336,10 +295,7 @@ void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int en
 			{
 				if (this->stopEarly)
 					return;
-				if (this->grid[i1][i2][i3])
-				{
-					GenerateCubeMesh(i1, i2, i3);
-				}
+				GenerateCubeMesh(i1, i2, i3);
 			}
 		}
 	}
@@ -347,12 +303,21 @@ void MarchingCubes::GenerateMeshInRange(int startX, int endX, int startY, int en
 
 void MarchingCubes::Run()
 {
+	auto start = std::chrono::high_resolution_clock::now();
+
 	this->running = true;
 	std::unique_lock<std::mutex> lock(triangleMutex);
 	this->GetTriangles().clear();
 	lock.unlock();
 	GenerateMesh();
 	this->running = this->stopEarly = false;
+
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> duration = end - start;
+
+	std::unique_lock<std::mutex> lock2(triangleMutex);
+	std::cout << "Trvanie algoritmu: " << duration.count() << " sec. a trojuholnikov " << this->GetTriangles().size() << std::endl;
+	lock2.unlock();
 }
 
 void MarchingCubes::SetUp()

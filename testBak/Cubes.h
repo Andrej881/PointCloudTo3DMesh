@@ -3,6 +3,7 @@
 #include "E57.h"
 #include <vector>
 
+#include <mutex>
 #include "ReconstructionAlgorithm.h"
 
 struct Side {

@@ -82,7 +82,7 @@ int MyGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
         ImGui::InputInt("Neighbours", &numNeighbours);
 
         static float normalRadius = 0.03f;
-        ImGui::InputFloat("Radius", &normalRadius);
+        ImGui::InputFloat("Radius", &normalRadius,0, 0, "%.6f");
 
         bool canCalcNormals = (numNeighbours > 0 || normalRadius > 0) && (numNeighbours * normalRadius) <= 0;
         if (!canCalcNormals) {
@@ -90,7 +90,7 @@ int MyGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
         }
         if (e->GetCalculating())
         {
-            if (ImGui::Button("Stop")) {
+            if (ImGui::Button("Stop Calculating Normals")) {
 
                 printf("Stopping\n");
                 e->StopCalculatingNormals();
@@ -130,7 +130,7 @@ int MyGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
             ImGui::InputInt("Cube Margin", &cubeMargin);
 
             static float voxelSize = 0.01f;
-            ImGui::InputFloat("Voxel Size", &voxelSize);
+            ImGui::InputFloat("Voxel Size", &voxelSize, 0, 0, "%.6f");
 
             if (!running)
             {
@@ -156,10 +156,16 @@ int MyGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
 
         if (ImGui::TreeNode("Marching Cubes")) {
             static float isoLevel = 0.02f;
-            ImGui::InputFloat("IsoLevel", &isoLevel);
+            ImGui::InputFloat("IsoLevel", &isoLevel, 0, 0, "%.6f");
 
             static float mcVoxelSize = 0.01f;
-            ImGui::InputFloat("MC VoxelSize", &mcVoxelSize);
+            ImGui::InputFloat("MC VoxelSize", &mcVoxelSize, 0, 0, "%.6f");
+
+            static float mcSigmaMultiplier = 0.75f;
+            ImGui::InputFloat("MC Sigma Multiplier", &mcSigmaMultiplier, 0, 0, "%.6f");
+
+            static int mcMargin = 1;
+            ImGui::InputInt("MC Margin", &mcMargin);
 
             if (!running)
             {
@@ -167,7 +173,8 @@ int MyGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
                     mesh = MARCHING_CUBES;
                     meshArgs[0] = isoLevel;
                     meshArgs[1] = mcVoxelSize;
-
+                    meshArgs[2] = mcSigmaMultiplier;
+                    meshArgs[3] = (float)mcMargin;
 
                     ImGui::TreePop();
                     EndRender();
@@ -186,7 +193,7 @@ int MyGuiImplementation::Render(float* rotations, bool cloud, float*& meshArgs, 
 
         if (ImGui::TreeNode("Ball Pivoting")) {
             static float bpRadius = 0.015f;
-            ImGui::InputFloat("BP Radius", &bpRadius);
+            ImGui::InputFloat("BP Radius", &bpRadius, 0, 0, "%.6f");
 
             if (!running)
             {

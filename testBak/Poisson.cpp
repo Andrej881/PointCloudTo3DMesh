@@ -145,7 +145,7 @@ float Poisson::CalculateDensity(glm::vec3 point, glm::vec3 min, glm::vec3 index)
     return density;
 }
 
-Poisson::Poisson(E57* e57) : MarchingCubes(0.1f, 0.01f, e57), tree({ glm::vec3(0) }, 1, 10)
+Poisson::Poisson(E57* e57) : MarchingCubes(0.1f, 0.01f,1,0.75, e57), tree({ glm::vec3(0) }, 1, 10)
 {
     this->n = sqrt(e57->getCount());
     this->numOfIter = 500;
@@ -153,7 +153,7 @@ Poisson::Poisson(E57* e57) : MarchingCubes(0.1f, 0.01f, e57), tree({ glm::vec3(0
     this->scalarField = std::vector<std::vector<std::vector<float>>>();
 }
 
-Poisson::Poisson(E57* e57, int n, int numOfIter, int depth, E57Point center, float size, float voxelSize, int margin, float isolevel) : MarchingCubes(isolevel, voxelSize,e57), tree(center, size, depth)
+Poisson::Poisson(E57* e57, int n, int numOfIter, int depth, E57Point center, float size, float voxelSize, int margin, float isolevel) : MarchingCubes(isolevel, voxelSize, margin, 0.75, e57), tree(center, size, depth)
 {
 	this->n = n;
 	this->numOfIter = numOfIter;

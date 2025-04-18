@@ -22,6 +22,6 @@ struct Triangle
 		}
 		auto u = b.position - a.position;
 		auto v = c.position - a.position;
-		normal = -glm::normalize(glm::cross(u, v));		
+		normal = glm::normalize(glm::cross(u, v));		
 	}
 };
