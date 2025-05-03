@@ -46,15 +46,16 @@ Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 Window win(1080, 720);
 int main() {
     srand(time(NULL));
-    E57 e57(path);
+    //E57 e57(path);
+    E57 e57;
 
 	AlgorithmControl algorithms(&e57);
     MyGuiImplementation gui(win.getWindow(), &e57);    
 
-    if (e57.getCount() <= 0)
+    /*if (e57.getCount() <= 0)
     {
         return -1;
-    }
+    }*/
 
     win.setPointCount(e57.getCount());
 	win.LoadPointCloudToGPU(e57);

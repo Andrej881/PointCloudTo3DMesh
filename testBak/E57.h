@@ -33,6 +33,7 @@ private:
 
 public:
 	void SetUpTree();
+	E57();
 	E57(e57::ustring path);
 
 	int ReadFile(e57::ustring & path, bool allClounds);

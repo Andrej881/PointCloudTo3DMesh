@@ -145,8 +145,6 @@
     <ClCompile Include="myGuiImplemnetation.cpp" />
     <ClCompile Include="nfd_common.c" />
     <ClCompile Include="nfd_win.cpp" />
-    <ClCompile Include="Octree.cpp" />
-    <ClCompile Include="Poisson.cpp" />
     <ClCompile Include="ReconstructionAlgorithm.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="main.cpp" />
@@ -172,8 +170,6 @@
     <ClInclude Include="myGuiImplemnetation.h" />
     <ClInclude Include="nfd.h" />
     <ClInclude Include="nfd_common.h" />
-    <ClInclude Include="Octree.h" />
-    <ClInclude Include="Poisson.h" />
     <ClInclude Include="ReconstructionAlgorithm.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Triangle.h" />

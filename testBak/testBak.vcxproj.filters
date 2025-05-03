@@ -46,12 +46,6 @@
     <Filter Include="Header Files\meshAlgorithms\BPA">
       <UniqueIdentifier>{c3f950c5-4731-4060-bb5e-e83c8c0eca3a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\meshAlgorithms\Poisson">
-      <UniqueIdentifier>{9c9ca7da-e0c6-481f-9989-ef5880ed0996}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\meshAlgorithms\Poisson">
-      <UniqueIdentifier>{3d685ce5-2ac8-4952-80dd-7020d627b2c2}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -95,12 +89,6 @@
     </ClCompile>
     <ClCompile Include="KDTree.cpp">
       <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="Poisson.cpp">
-      <Filter>Source Files\meshAlgorithms\Poisson</Filter>
-    </ClCompile>
-    <ClCompile Include="Octree.cpp">
-      <Filter>Source Files\meshAlgorithms\Poisson</Filter>
     </ClCompile>
     <ClCompile Include="BallPivoting.cpp">
       <Filter>Source Files\meshAlgorithms\BPA</Filter>
@@ -169,12 +157,6 @@
     </ClInclude>
     <ClInclude Include="E57Point.h">
       <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="Poisson.h">
-      <Filter>Header Files\meshAlgorithms\Poisson</Filter>
-    </ClInclude>
-    <ClInclude Include="Octree.h">
-      <Filter>Header Files\meshAlgorithms\Poisson</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

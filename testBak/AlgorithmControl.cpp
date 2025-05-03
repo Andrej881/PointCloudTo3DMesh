@@ -1,11 +1,11 @@
 #include "AlgorithmControl.h"
 
-AlgorithmControl::AlgorithmControl(E57* e):e57(e), cubes(e), marchinCubes(e), bp(e),poisson(e), activeAlgorithm(nullptr)
+AlgorithmControl::AlgorithmControl(E57* e):e57(e), cubes(e), marchinCubes(e), bp(e), activeAlgorithm(nullptr)
 {
 	this->emptyVector = std::vector<Triangle>();
 }
 
-AlgorithmControl::AlgorithmControl(E57 * e, AlgorithmsEnum starting) :e57(e), cubes(e), marchinCubes(e), bp(e), poisson(e)
+AlgorithmControl::AlgorithmControl(E57 * e, AlgorithmsEnum starting) :e57(e), cubes(e), marchinCubes(e), bp(e)
 {
 	this->emptyVector = std::vector<Triangle>();
 	this->active = starting;
@@ -19,9 +19,6 @@ AlgorithmControl::AlgorithmControl(E57 * e, AlgorithmsEnum starting) :e57(e), cu
 		break;
 	case BALL_PIVOTING:
 		this->activeAlgorithm = &bp;
-		break;
-	case POISSON:
-		this->activeAlgorithm = &poisson;
 		break;
 	}
 	SetUp();
@@ -50,9 +47,6 @@ void AlgorithmControl::ChangeAlgorithm(AlgorithmsEnum a)
 		break;
 	case BALL_PIVOTING:
 		this->activeAlgorithm = &bp;
-		break;
-	case POISSON:
-		this->activeAlgorithm = &poisson;
 		break;
 	}
 	SetUp();
@@ -105,11 +99,7 @@ void AlgorithmControl::ChangeParams(float* args)
 
 		this->bp.SetRadius(radius);
 		break;
-	}		
-	case POISSON:
-	{
-		break;
-	}
+	}	
 	}
 }
 

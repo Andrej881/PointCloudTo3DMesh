@@ -6,7 +6,7 @@
 #include "Poisson.h"
 
 enum AlgorithmsEnum {
-	CUBES, MARCHING_CUBES, BALL_PIVOTING, POISSON, NONE
+	CUBES, MARCHING_CUBES, BALL_PIVOTING, NONE
 };
 
 class AlgorithmControl
@@ -20,7 +20,6 @@ private:
 
 	Cubes cubes;
 	MarchingCubes marchinCubes;
-	Poisson poisson;
 	BallPivoting bp;
 
 	ReconstructionAlgorithm* activeAlgorithm;

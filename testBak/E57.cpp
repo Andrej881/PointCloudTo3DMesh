@@ -102,6 +102,13 @@ void E57::SetUpTree()
 	}*/
 }
 
+E57::E57()
+{
+    points = std::vector<E57Point>();
+    count = 0;
+	hasNormals = false;
+}
+
 E57::E57(e57::ustring path)
 {   
     points = std::vector<E57Point>();
